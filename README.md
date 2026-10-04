@@ -22,6 +22,8 @@ Real folder on disk  ->  Visual folder box on desktop
 
 ![FolderBox preview](images/example.png)
 
+Install for development with `python -m pip install -e .`, then launch with `folderbox`.
+
 > Note: File names in the screenshot have been pixelated for privacy.
 
 For example, a folder such as:
@@ -77,6 +79,8 @@ FolderBox 不是传统意义上的文件管理器。它的目标是把一个真�
 ### 界面预览
 
 ![FolderBox 界面预览](images/example.png)
+
+开发环境可执行 `python -m pip install -e .` 安装，然后使用 `folderbox` 启动。
 
 > 备注：截图中的文件名因隐私原因已打上马赛克。
 

@@ -10,7 +10,7 @@ from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QApplication
 
 from folderbox import __app_name__
-from folderbox.config_manager import ConfigManager
+from folderbox.config_manager import ConfigManager, DEFAULT_WINDOW_STATE
 from folderbox.main_window import MainWindow
 from folderbox.utils import path_exists
 
@@ -30,23 +30,7 @@ class WindowManager:
         self.app.aboutToQuit.connect(self.save_window_states)
 
     def restore_windows(self) -> None:
-        states = self._valid_saved_window_states()
-        if not states:
-            legacy_folder = str(self.config.get("last_folder", "") or "")
-            states = [
-                {
-                    "folder": legacy_folder if path_exists(legacy_folder) else "",
-                    "x": int(self.config.get("window_x", 200) or 200),
-                    "y": int(self.config.get("window_y", 200) or 200),
-                    "width": int(self.config.get("window_width", 420) or 420),
-                    "height": int(self.config.get("window_height", 520) or 520),
-                    "always_on_top": bool(self.config.get("always_on_top", False)),
-                    "background_opacity": float(
-                        self.config.get("background_opacity", self.config.get("window_opacity", 0.72))
-                    ),
-                    "view_mode": str(self.config.get("view_mode", "icons") or "icons"),
-                }
-            ]
+        states = self._valid_saved_window_states() or [DEFAULT_WINDOW_STATE.copy()]
 
         for index, state in enumerate(states):
             self.create_window(initial_state=state, offset_index=index, show=True)
@@ -86,16 +70,7 @@ class WindowManager:
             return self.windows[-1].snapshot_state()
         if self._last_snapshot:
             return dict(self._last_snapshot)
-        return {
-            "folder": "",
-            "x": 200,
-            "y": 200,
-            "width": 420,
-            "height": 520,
-            "always_on_top": bool(self.config.get("always_on_top", False)),
-            "background_opacity": float(self.config.get("background_opacity", 0.72)),
-            "view_mode": str(self.config.get("view_mode", "icons") or "icons"),
-        }
+        return DEFAULT_WINDOW_STATE.copy()
 
     def save_window_states(self, fallback: dict[str, Any] | None = None) -> None:
         states = [window.snapshot_state() for window in self.windows if window.isVisible()]
@@ -105,21 +80,6 @@ class WindowManager:
             states = [self._last_snapshot]
 
         self.config.set("windows", states)
-        if states:
-            first = states[0]
-            self.config.update(
-                {
-                    "last_folder": first.get("folder", ""),
-                    "window_x": first.get("x", 200),
-                    "window_y": first.get("y", 200),
-                    "window_width": first.get("width", 420),
-                    "window_height": first.get("height", 520),
-                    "always_on_top": first.get("always_on_top", False),
-                    "background_opacity": first.get("background_opacity", 0.72),
-                    "window_opacity": first.get("background_opacity", 0.72),
-                    "view_mode": first.get("view_mode", "icons"),
-                }
-            )
         self.config.save()
 
     def _valid_saved_window_states(self) -> list[dict[str, Any]]:
@@ -137,13 +97,13 @@ class WindowManager:
             states.append(
                 {
                     "folder": folder,
-                    "x": int(item.get("x", 200) or 200),
-                    "y": int(item.get("y", 200) or 200),
-                    "width": int(item.get("width", 420) or 420),
-                    "height": int(item.get("height", 520) or 520),
-                    "always_on_top": bool(item.get("always_on_top", False)),
-                    "background_opacity": float(item.get("background_opacity", self.config.get("background_opacity", 0.72))),
-                    "view_mode": str(item.get("view_mode", self.config.get("view_mode", "icons")) or "icons"),
+                    "x": int(item.get("x", DEFAULT_WINDOW_STATE["x"]) or DEFAULT_WINDOW_STATE["x"]),
+                    "y": int(item.get("y", DEFAULT_WINDOW_STATE["y"]) or DEFAULT_WINDOW_STATE["y"]),
+                    "width": int(item.get("width", DEFAULT_WINDOW_STATE["width"]) or DEFAULT_WINDOW_STATE["width"]),
+                    "height": int(item.get("height", DEFAULT_WINDOW_STATE["height"]) or DEFAULT_WINDOW_STATE["height"]),
+                    "always_on_top": bool(item.get("always_on_top", DEFAULT_WINDOW_STATE["always_on_top"])),
+                    "background_opacity": float(item.get("background_opacity", DEFAULT_WINDOW_STATE["background_opacity"])),
+                    "view_mode": str(item.get("view_mode", DEFAULT_WINDOW_STATE["view_mode"]) or DEFAULT_WINDOW_STATE["view_mode"]),
                 }
             )
         return states
@@ -177,3 +137,7 @@ def run_app(argv: list[str]) -> int:
     manager = WindowManager(app, config)
     manager.restore_windows()
     return app.exec()
+
+
+def main() -> int:
+    return run_app(sys.argv)

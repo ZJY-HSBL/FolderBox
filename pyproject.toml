@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "folderbox"
+version = "1.0.0"
+description = "Lightweight desktop folder visualization for Windows"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "PySide6>=6.7,<7",
+  "send2trash>=1.8"
+]
+
+[project.optional-dependencies]
+build = ["pyinstaller>=6.0"]
+
+[project.scripts]
+folderbox = "folderbox.app:main"
+
+[tool.setuptools.packages.find]
+include = ["folderbox*"]

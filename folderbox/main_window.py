@@ -250,9 +250,9 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._connect_model_signals()
         self._apply_background_opacity(int(self.background_opacity * 100))
-        self._apply_always_on_top(bool(self.initial_state.get("always_on_top", self.config.get("always_on_top", False))), initial=True)
+        self._apply_always_on_top(bool(self.initial_state.get("always_on_top", False)), initial=True)
 
-        last_folder = str(self.initial_state.get("folder", self.config.get("last_folder", "")) or "")
+        last_folder = str(self.initial_state.get("folder", "") or "")
         if path_exists(last_folder) and Path(last_folder).is_dir():
             self.set_current_folder(last_folder, TEXT["loaded"])
         else:
@@ -412,20 +412,17 @@ class MainWindow(QMainWindow):
         self.file_model.model.layoutChanged.connect(lambda *_: self.update_folder_state())
 
     def _restore_window_state(self) -> None:
-        x = int(self.initial_state.get("x", self.config.get("window_x", 200)) or 200)
-        y = int(self.initial_state.get("y", self.config.get("window_y", 200)) or 200)
-        width = max(320, int(self.initial_state.get("width", self.config.get("window_width", 420)) or 420))
-        height = max(340, int(self.initial_state.get("height", self.config.get("window_height", 520)) or 520))
+        x = int(self.initial_state.get("x", 200) or 200)
+        y = int(self.initial_state.get("y", 200) or 200)
+        width = max(320, int(self.initial_state.get("width", 420) or 420))
+        height = max(340, int(self.initial_state.get("height", 520) or 520))
         if not self.initial_state and self.instance_offset:
             x += self.instance_offset * 36
             y += self.instance_offset * 36
         self.setGeometry(x, y, width, height)
 
     def _initial_background_opacity(self) -> float:
-        raw_value = self.initial_state.get(
-            "background_opacity",
-            self.config.get("background_opacity", self.config.get("window_opacity", 0.72)),
-        )
+        raw_value = self.initial_state.get("background_opacity", 0.72)
         try:
             value = float(raw_value)
         except (TypeError, ValueError):
@@ -433,13 +430,11 @@ class MainWindow(QMainWindow):
         return max(0.2, min(1.0, value))
 
     def _initial_view_mode(self) -> str:
-        value = str(self.initial_state.get("view_mode", self.config.get("view_mode", "icons")) or "icons")
+        value = str(self.initial_state.get("view_mode", "icons") or "icons")
         return value if value in {"icons", "details"} else "icons"
 
     def _apply_background_opacity(self, value: int) -> None:
         self.background_opacity = max(0.2, min(1.0, value / 100))
-        self.config.set("background_opacity", round(self.background_opacity, 2))
-        self.config.set("window_opacity", round(self.background_opacity, 2))
         if hasattr(self, "shell"):
             self._refresh_style_sheet()
 
@@ -522,7 +517,6 @@ class MainWindow(QMainWindow):
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, enabled)
         if not initial:
             self.show()
-        self.config.set("always_on_top", enabled)
         if self.manager and not initial and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
 
@@ -530,7 +524,6 @@ class MainWindow(QMainWindow):
         path = Path(folder)
         if not path.exists() or not path.is_dir():
             self.current_folder = ""
-            self.config.set("last_folder", "")
             self.show_empty_state(TEXT["select_hint"])
             return
 
@@ -539,7 +532,6 @@ class MainWindow(QMainWindow):
         self.list_view.setRootIndex(root_index)
         self.details_view.setRootIndex(root_index)
         self._show_current_file_view()
-        self.config.set("last_folder", self.current_folder)
         self.update_path_label()
         self.update_parent_button()
         self.update_folder_state(message or TEXT["loaded"])
@@ -628,7 +620,6 @@ class MainWindow(QMainWindow):
         if mode not in {"icons", "details"}:
             return
         self.view_mode = mode
-        self.config.set("view_mode", mode)
         self._update_view_button_text()
         if self.current_folder:
             self.update_folder_state()
@@ -958,18 +949,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         state = self.snapshot_state()
-        self.config.update(
-            {
-                "last_folder": state["folder"],
-                "window_x": state["x"],
-                "window_y": state["y"],
-                "window_width": state["width"],
-                "window_height": state["height"],
-                "always_on_top": state["always_on_top"],
-                "background_opacity": state["background_opacity"],
-                "window_opacity": state["background_opacity"],
-            }
-        )
         try:
             if self.manager and hasattr(self.manager, "unregister_window"):
                 self.manager.unregister_window(self)
