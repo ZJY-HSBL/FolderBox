@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[build,dev]"
+
+      - name: Quality checks
+        run: |
+          python -m ruff check folderbox tests
+          python -m pytest -q
+
+      - name: Build application
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean --windowed --name FolderBox --icon assets/app.ico --add-data "assets;assets" folderbox/__main__.py
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer and portable archive
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          New-Item -ItemType Directory -Force release | Out-Null
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "packaging\FolderBox.iss"
+          Compress-Archive -Path "dist\FolderBox\*" -DestinationPath "release\FolderBox-Portable-$version.zip" -Force
+          $files = Get-ChildItem release -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" }
+          $lines = foreach ($file in $files) {
+            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($file.Name)"
+          }
+          $lines | Set-Content "release\SHA256SUMS.txt" -Encoding ascii
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --generate-notes
