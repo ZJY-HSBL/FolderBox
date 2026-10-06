@@ -5,6 +5,14 @@ import platform
 from pathlib import Path
 
 WINDOWS_INVALID_FILENAME_CHARS = set('\\/:*?"<>|')
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
 
 
 def is_windows() -> bool:
@@ -23,11 +31,14 @@ def path_exists(path: str | Path | None) -> bool:
 def is_valid_windows_filename(name: str) -> bool:
     if not name or not name.strip():
         return False
-    if name in {".", ".."}:
+    if name in {".", ".."} or len(name) > 255:
         return False
-    if any(char in WINDOWS_INVALID_FILENAME_CHARS for char in name):
+    if name.endswith((" ", ".")):
         return False
-    return True
+    if any(ord(char) < 32 or char in WINDOWS_INVALID_FILENAME_CHARS for char in name):
+        return False
+    device_name = name.split(".", 1)[0].upper()
+    return device_name not in WINDOWS_RESERVED_NAMES
 
 
 def shorten_path(path: str | Path, max_chars: int = 64) -> str:
