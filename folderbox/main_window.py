@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QItemSelectionModel, QMimeData, QModelIndex, QPoint, QSize, QUrl, Qt
+from PySide6.QtCore import QItemSelectionModel, QMimeData, QModelIndex, QPoint, QRect, QSize, QUrl, Qt
 from PySide6.QtGui import (
     QCloseEvent,
     QDragEnterEvent,
@@ -419,6 +419,14 @@ class MainWindow(QMainWindow):
         if not self.initial_state and self.instance_offset:
             x += self.instance_offset * 36
             y += self.instance_offset * 36
+        geometry = QRect(x, y, width, height)
+        screens = QApplication.screens()
+        if screens and not any(screen.availableGeometry().intersects(geometry) for screen in screens):
+            primary = QApplication.primaryScreen()
+            if primary is not None:
+                available = primary.availableGeometry()
+                x = available.left() + 40
+                y = available.top() + 40
         self.setGeometry(x, y, width, height)
 
     def _initial_background_opacity(self) -> float:
@@ -661,7 +669,7 @@ class MainWindow(QMainWindow):
 
     def open_new_window(self) -> None:
         if self.manager and hasattr(self.manager, "open_new_window"):
-            self.manager.open_new_window()
+            self.manager.open_new_window(self)
             return
         window = MainWindow(self.config, initial_state={"background_opacity": self.background_opacity}, instance_offset=1)
         window.show()
@@ -706,7 +714,6 @@ class MainWindow(QMainWindow):
         if not self.current_folder:
             return
         if not path_exists(self.current_folder):
-            self.config.set("last_folder", "")
             self.show_empty_state(TEXT["missing"])
             return
         root_index = self.file_model.refresh_folder()
