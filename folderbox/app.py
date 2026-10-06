@@ -50,8 +50,8 @@ class WindowManager:
             window.choose_folder()
         return window
 
-    def open_new_window(self) -> None:
-        base = self.active_window_state()
+    def open_new_window(self, source: MainWindow) -> None:
+        base = source.snapshot_state()
         base["folder"] = ""
         base["x"] = int(base.get("x", 200)) + 36
         base["y"] = int(base.get("y", 200)) + 36
@@ -64,13 +64,6 @@ class WindowManager:
         if window in self.windows:
             self.windows.remove(window)
         self.save_window_states(fallback=snapshot)
-
-    def active_window_state(self) -> dict[str, Any]:
-        if self.windows:
-            return self.windows[-1].snapshot_state()
-        if self._last_snapshot:
-            return dict(self._last_snapshot)
-        return DEFAULT_WINDOW_STATE.copy()
 
     def save_window_states(self, fallback: dict[str, Any] | None = None) -> None:
         states = [window.snapshot_state() for window in self.windows if window.isVisible()]
