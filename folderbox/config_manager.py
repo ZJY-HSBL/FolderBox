@@ -49,8 +49,14 @@ class ConfigManager:
 
     def save(self) -> None:
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.config_path.open("w", encoding="utf-8") as file:
-            json.dump(self._config, file, ensure_ascii=False, indent=2)
+        temporary_path = self.config_path.with_suffix(self.config_path.suffix + ".tmp")
+        payload = json.dumps(self._config, ensure_ascii=False, indent=2)
+        try:
+            temporary_path.write_text(payload, encoding="utf-8")
+            temporary_path.replace(self.config_path)
+        finally:
+            if temporary_path.exists():
+                temporary_path.unlink(missing_ok=True)
 
     def get(self, key: str, default: Any = None) -> Any:
         return self._config.get(key, default)
