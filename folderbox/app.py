@@ -15,7 +15,7 @@ from folderbox.window_manager import WindowManager
 
 def asset_path(name: str) -> Path:
     if getattr(sys, "frozen", False):
-        return Path(getattr(sys, "_MEIPASS")) / "assets" / name
+        return Path(sys._MEIPASS) / "assets" / name  # type: ignore[attr-defined]
     return Path(__file__).resolve().parent.parent / "assets" / name
 
 
