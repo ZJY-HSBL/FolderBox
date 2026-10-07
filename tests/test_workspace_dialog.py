@@ -35,3 +35,29 @@ def test_workspace_dialog_lists_saved_layouts(tmp_path) -> None:
 
     dialog.close()
     app.processEvents()
+
+
+
+def test_workspace_dialog_exposes_layout_templates(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(app, config)
+
+    arranged: list[str] = []
+    manager.arrange_visible = lambda mode: arranged.append(mode) or 0
+
+    dialog = WorkspaceDialog(manager)
+
+    assert dialog.arrange_combo.count() == 4
+    assert dialog.arrange_combo.itemData(0) == "grid"
+    assert dialog.arrange_combo.itemData(1) == "columns"
+    assert dialog.arrange_combo.itemData(2) == "rows"
+    assert dialog.arrange_combo.itemData(3) == "cascade"
+
+    dialog.arrange_combo.setCurrentIndex(3)
+    dialog.arrange_current()
+
+    assert arranged == ["cascade"]
+
+    dialog.close()
+    app.processEvents()
