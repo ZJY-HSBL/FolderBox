@@ -20,7 +20,7 @@ class TrayController:
         self.tray = QSystemTrayIcon(app.windowIcon(), app)
         self.menu = QMenu()
 
-        self.toggle_action = QAction("隐藏 / 显示全部 Box", self.menu)
+        self.toggle_action = QAction("隐藏 / 显示全部 Box    Ctrl+Alt+B", self.menu)
         self.new_box_action = QAction("新建 Box", self.menu)
         self.workspace_menu = self.menu.addMenu("工作区")
         self.save_workspace_action = QAction("保存当前工作区…", self.menu)
