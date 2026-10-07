@@ -18,7 +18,8 @@ def build_file_mime_data(paths: list[str]) -> QMimeData:
         for path in paths
         if Path(path).exists()
     ]
-    mime_data.setUrls(urls)
+    if urls:
+        mime_data.setUrls(urls)
     return mime_data
 
 
