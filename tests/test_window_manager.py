@@ -113,3 +113,28 @@ def test_rename_workspace_rejects_duplicate_name(tmp_path) -> None:
 
     assert not manager.rename_workspace("One", "Two")
     assert manager.workspace_names() == ["One", "Two"]
+
+
+
+def test_snap_preference_round_trip(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+
+    assert manager.is_snap_enabled()
+    manager.set_snap_enabled(False)
+
+    assert not manager.is_snap_enabled()
+    assert ConfigManager(tmp_path / "config.json").get("snap_enabled") is False
+
+
+def test_cycle_workspace_wraps_names(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    config.set("workspaces", {"One": [{}], "Two": [{}]})
+    config.set("active_workspace", "Two")
+
+    loaded: list[str] = []
+    manager.load_workspace = lambda name: loaded.append(name) or True
+
+    assert manager.cycle_workspace(1)
+    assert loaded == ["One"]

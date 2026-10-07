@@ -452,6 +452,19 @@ class MainWindow(QMainWindow):
 
         self.more_menu.addSeparator()
         self.view_action = self.more_menu.addAction(TEXT["switch_to_details"])
+        self.layout_menu = self.more_menu.addMenu("桌面布局")
+        for placement, label in (
+            ("left", "贴左边缘"),
+            ("right", "贴右边缘"),
+            ("top", "贴上边缘"),
+            ("bottom", "贴下边缘"),
+            ("center", "屏幕居中"),
+        ):
+            action = self.layout_menu.addAction(label)
+            action.triggered.connect(
+                lambda checked=False, value=placement: self.place_box(value)
+            )
+
         appearance_menu = self.more_menu.addMenu("外观")
 
         theme_menu = appearance_menu.addMenu("主题")
@@ -527,6 +540,7 @@ class MainWindow(QMainWindow):
         self.lock_action.blockSignals(False)
 
         self.open_folder_action.setEnabled(bool(self.current_folder))
+        self.layout_menu.setEnabled(not self.locked)
         for mode, action in self.theme_actions.items():
             action.setChecked(mode == self.theme_mode)
         for color, action in self.accent_actions.items():
@@ -577,6 +591,12 @@ class MainWindow(QMainWindow):
         target_index = max(0, min(len(sizes) - 1, current_index + direction))
         if target_index != current_index:
             self._apply_icon_size(sizes[target_index])
+
+    def place_box(self, placement: str) -> None:
+        if self.locked:
+            return
+        if self.manager and hasattr(self.manager, "place_window"):
+            self.manager.place_window(self, placement)
 
     def choose_background_opacity(self) -> None:
         value, ok = QInputDialog.getInt(
@@ -1290,11 +1310,17 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self._drag_offset)
+            target = event.globalPosition().toPoint() - self._drag_offset
+            if self.manager and hasattr(self.manager, "snap_window_position"):
+                target = self.manager.snap_window_position(self, target)
+            self.move(target)
             event.accept()
 
     def _title_mouse_release(self, event: QMouseEvent) -> None:
+        was_dragging = self._drag_offset is not None
         self._drag_offset = None
+        if was_dragging:
+            self._save_window_state()
         event.accept()
 
     def show_error(self, title: str, message: str) -> None:

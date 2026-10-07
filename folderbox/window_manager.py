@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication
 
 from folderbox.config_manager import ConfigManager, DEFAULT_WINDOW_STATE
+from folderbox.desktop_layout import placement_position, snapped_position
 from folderbox.main_window import MainWindow
 from folderbox.utils import path_exists
 
@@ -154,6 +156,47 @@ class WindowManager:
         else:
             self.show_all()
 
+    def is_snap_enabled(self) -> bool:
+        return bool(self.config.get("snap_enabled", True))
+
+    def set_snap_enabled(self, enabled: bool) -> None:
+        self.config.set("snap_enabled", bool(enabled))
+        self.config.save()
+
+    def snap_window_position(self, window: MainWindow, desired: QPoint) -> QPoint:
+        if not self.is_snap_enabled():
+            return desired
+
+        screen = window.screen() or self.app.primaryScreen()
+        if screen is None:
+            return desired
+
+        peers = [
+            other.geometry()
+            for other in self.windows
+            if other is not window and other.isVisible()
+        ]
+        return snapped_position(
+            desired,
+            window.size(),
+            screen.availableGeometry(),
+            peers,
+        )
+
+    def place_window(self, window: MainWindow, placement: str) -> bool:
+        screen = window.screen() or self.app.primaryScreen()
+        if screen is None:
+            return False
+        target = placement_position(
+            placement,
+            window.geometry(),
+            screen.availableGeometry(),
+            margin=8,
+        )
+        window.move(target)
+        self.save_window_states()
+        return True
+
     def workspace_names(self) -> list[str]:
         workspaces = self.config.get("workspaces", {})
         if not isinstance(workspaces, dict):
@@ -162,6 +205,19 @@ class WindowManager:
 
     def active_workspace(self) -> str:
         return str(self.config.get("active_workspace", "") or "")
+
+    def cycle_workspace(self, step: int) -> bool:
+        names = self.workspace_names()
+        if not names:
+            return False
+
+        active = self.active_workspace()
+        if active in names:
+            index = names.index(active)
+            target = names[(index + (1 if step >= 0 else -1)) % len(names)]
+        else:
+            target = names[0 if step >= 0 else -1]
+        return self.load_workspace(target)
 
     def save_workspace(self, name: str) -> None:
         clean_name = name.strip()

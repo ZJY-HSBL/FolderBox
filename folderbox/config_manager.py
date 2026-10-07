@@ -27,6 +27,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "windows": [],
     "workspaces": {},
     "active_workspace": "",
+    "snap_enabled": True,
 }
 
 
@@ -51,16 +52,20 @@ class ConfigManager:
             windows = loaded.get("windows", [])
             workspaces = loaded.get("workspaces", {})
             active_workspace = loaded.get("active_workspace", "")
+            snap_enabled = loaded.get("snap_enabled", True)
             if not isinstance(windows, list):
                 raise ValueError("windows must be a list")
             if not isinstance(workspaces, dict):
                 raise ValueError("workspaces must be an object")
             if not isinstance(active_workspace, str):
                 raise ValueError("active_workspace must be a string")
+            if not isinstance(snap_enabled, bool):
+                raise ValueError("snap_enabled must be a boolean")
             self._config = {
                 "windows": windows,
                 "workspaces": workspaces,
                 "active_workspace": active_workspace,
+                "snap_enabled": snap_enabled,
             }
         except (OSError, json.JSONDecodeError, ValueError, AttributeError):
             self._config = DEFAULT_CONFIG.copy()

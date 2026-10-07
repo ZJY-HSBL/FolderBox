@@ -33,6 +33,7 @@ def test_saved_config_is_valid_json(tmp_path) -> None:
         "windows": [],
         "workspaces": {},
         "active_workspace": "",
+        "snap_enabled": True,
     }
 
 

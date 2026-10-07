@@ -20,9 +20,16 @@ def test_main_window_builds_product_chrome(tmp_path) -> None:
     assert window.view_button.icon().isNull() is False
     assert window.min_button.icon().isNull() is False
     assert window.close_button.icon().isNull() is False
+    assert window.layout_menu.title() == "桌面布局"
+    assert window.layout_menu.isEnabled()
     assert window.theme_mode == "light"
     assert window.accent_color == "#3b82f6"
     assert window.icon_size == 40
+
+    window._apply_locked(True)
+    window._sync_more_menu()
+    assert not window.layout_menu.isEnabled()
+    window._apply_locked(False)
 
     window._apply_theme_mode("dark")
     window._apply_accent_color("#8b5cf6")

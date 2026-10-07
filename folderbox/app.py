@@ -10,9 +10,11 @@ from PySide6.QtWidgets import QApplication
 
 from folderbox import __app_name__
 from folderbox.config_manager import ConfigManager
+from folderbox.global_hotkey import GlobalHotkeyController
 from folderbox.instance_bridge import InstanceBridge, notify_existing_instance
 from folderbox.launch import requested_folder
 from folderbox.tray import TrayController
+from folderbox.utils import is_windows
 from folderbox.window_manager import WindowManager
 
 
@@ -63,14 +65,21 @@ def run_app(argv: list[str]) -> int:
     if folder:
         manager.open_folder_window(folder)
 
+    hotkey: GlobalHotkeyController | None = None
+    hotkey_active = False
+    if is_windows():
+        hotkey = GlobalHotkeyController(app, manager.toggle_all)
+        hotkey_active = hotkey.register()
+
     tray: TrayController | None = None
     if TrayController.is_available():
         app.setQuitOnLastWindowClosed(False)
-        tray = TrayController(app, manager)
+        tray = TrayController(app, manager, global_hotkey_active=hotkey_active)
         tray.show()
 
     exit_code = app.exec()
     del tray
+    del hotkey
     del bridge
     return exit_code
 
