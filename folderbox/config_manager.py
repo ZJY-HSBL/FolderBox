@@ -27,6 +27,7 @@ DEFAULT_WINDOW_STATE: dict[str, Any] = {
 DEFAULT_CONFIG: dict[str, Any] = {
     "windows": [],
     "workspaces": {},
+    "workspace_layouts": {},
     "active_workspace": "",
     "snap_enabled": True,
 }
@@ -52,12 +53,15 @@ class ConfigManager:
                 loaded = json.load(file)
             windows = loaded.get("windows", [])
             workspaces = loaded.get("workspaces", {})
+            workspace_layouts = loaded.get("workspace_layouts", {})
             active_workspace = loaded.get("active_workspace", "")
             snap_enabled = loaded.get("snap_enabled", True)
             if not isinstance(windows, list):
                 raise ValueError("windows must be a list")
             if not isinstance(workspaces, dict):
                 raise ValueError("workspaces must be an object")
+            if not isinstance(workspace_layouts, dict):
+                raise ValueError("workspace_layouts must be an object")
             if not isinstance(active_workspace, str):
                 raise ValueError("active_workspace must be a string")
             if not isinstance(snap_enabled, bool):
@@ -65,6 +69,7 @@ class ConfigManager:
             self._config = {
                 "windows": windows,
                 "workspaces": workspaces,
+                "workspace_layouts": workspace_layouts,
                 "active_workspace": active_workspace,
                 "snap_enabled": snap_enabled,
             }
