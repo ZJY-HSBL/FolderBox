@@ -570,6 +570,14 @@ class MainWindow(QMainWindow):
         if not initial:
             self._save_window_state()
 
+    def adjust_icon_size(self, delta: int) -> None:
+        sizes = (32, 40, 48, 56)
+        current_index = sizes.index(self.icon_size)
+        direction = 1 if delta > 0 else -1
+        target_index = max(0, min(len(sizes) - 1, current_index + direction))
+        if target_index != current_index:
+            self._apply_icon_size(sizes[target_index])
+
     def choose_background_opacity(self) -> None:
         value, ok = QInputDialog.getInt(
             self,
