@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - "release/v*"
 
 permissions:
   contents: write
@@ -29,10 +31,24 @@ jobs:
         shell: pwsh
         run: |
           $version = python -c "import folderbox; print(folderbox.__version__)"
-          if ("v$version" -ne "${{ github.ref_name }}") {
-            throw "Tag ${{ github.ref_name }} does not match package version $version."
+          $expectedTag = "v$version"
+
+          if ($env:GITHUB_REF.StartsWith("refs/tags/")) {
+            $requestedTag = "${{ github.ref_name }}"
+          } else {
+            $refName = "${{ github.ref_name }}"
+            if (-not $refName.StartsWith("release/")) {
+              throw "Unsupported release ref: $refName"
+            }
+            $requestedTag = $refName.Substring("release/".Length)
           }
+
+          if ($requestedTag -ne $expectedTag) {
+            throw "Release ref $requestedTag does not match package version $version."
+          }
+
           "FOLDERBOX_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "FOLDERBOX_RELEASE_TAG=$expectedTag" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       - name: Quality checks
         run: |
@@ -83,8 +99,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $notesFile = "release-notes/$env:FOLDERBOX_VERSION.md"
+          $tag = $env:FOLDERBOX_RELEASE_TAG
+
+          if (gh release view $tag 2>$null) {
+            throw "Release $tag already exists."
+          }
+
           if (Test-Path $notesFile) {
-            gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --notes-file $notesFile
+            gh release create $tag release/* --target "${{ github.sha }}" --title "FolderBox $tag" --notes-file $notesFile
           } else {
-            gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --generate-notes
+            gh release create $tag release/* --target "${{ github.sha }}" --title "FolderBox $tag" --generate-notes
           }
