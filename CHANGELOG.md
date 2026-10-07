@@ -2,7 +2,7 @@
 
 All notable changes to FolderBox are documented here.
 
-## [1.7.0] - Unreleased
+## [1.7.0] - 2026-10-08
 
 ### Added
 
