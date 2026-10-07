@@ -2,6 +2,21 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.3.0] - Unreleased
+
+### Added
+
+- Added automatic Box snapping to screen edges and neighboring Boxes.
+- Added one-click Box placement commands for left, right, top, bottom, and screen center.
+- Added a tray toggle for enabling or disabling desktop snapping globally.
+- Added quick previous/next Workspace switching from the tray.
+- Added the Windows global hotkey `Ctrl+Alt+B` to hide or show all Boxes.
+
+### Changed
+
+- Box positions are saved once when a title-bar drag finishes instead of during every drag movement.
+- Desktop layout calculations are centralized in a reusable geometry module.
+
 ## [1.2.0] - 2026-10-08
 
 ### Added
