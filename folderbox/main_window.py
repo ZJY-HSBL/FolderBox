@@ -64,6 +64,9 @@ from folderbox.tasks import FunctionTask
 from folderbox.utils import format_exception, path_exists, shorten_path
 
 
+FOLDERBOX_CLIPBOARD_ACTION = "application/x-folderbox-action"
+
+
 TEXT = {
     "choose": "\u9009\u62e9\u6587\u4ef6\u5939",
     "back": "后退",
@@ -712,7 +715,7 @@ class MainWindow(QMainWindow):
         return paths
 
     def has_paste_data(self) -> bool:
-        return bool(self.copied_paths or self.clipboard_paths())
+        return bool(self.clipboard_paths())
 
     def can_accept_file_drop(self, mime_data: QMimeData) -> bool:
         return bool(self.current_folder and mime_data and mime_data.hasUrls())
@@ -816,10 +819,24 @@ class MainWindow(QMainWindow):
         self.clipboard_action = action
         mime_data = QMimeData()
         mime_data.setUrls([QUrl.fromLocalFile(path) for path in paths])
+        mime_data.setData(FOLDERBOX_CLIPBOARD_ACTION, action.encode("ascii"))
         QApplication.clipboard().setMimeData(mime_data)
 
+    def _clipboard_action(self) -> str:
+        mime_data = QApplication.clipboard().mimeData()
+        if not mime_data or not mime_data.hasFormat(FOLDERBOX_CLIPBOARD_ACTION):
+            return "copy"
+        action = bytes(mime_data.data(FOLDERBOX_CLIPBOARD_ACTION)).decode(
+            "ascii",
+            errors="ignore",
+        )
+        return action if action in {"copy", "move"} else "copy"
+
     def _owns_clipboard(self, paths: list[str]) -> bool:
-        return bool(self.copied_paths) and self.clipboard_paths() == paths == self.copied_paths
+        return self.clipboard_paths() == paths and self._clipboard_action() in {
+            "copy",
+            "move",
+        }
 
     def copy_selected(self) -> None:
         paths = self.selected_paths()
@@ -841,7 +858,7 @@ class MainWindow(QMainWindow):
         paths = self.clipboard_paths()
         if not paths:
             return
-        move = self._owns_clipboard(paths) and self.clipboard_action == "move"
+        move = self._clipboard_action() == "move"
         self._transfer_paths_to_folder(
             paths,
             self.current_folder,
