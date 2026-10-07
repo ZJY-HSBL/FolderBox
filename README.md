@@ -1,8 +1,8 @@
 # FolderBox
 
-**FolderBox** is a lightweight Windows desktop folder visualization tool built with Python and PySide6.
+**FolderBox** is a lightweight persistent folder portal for the Windows desktop, built with Python and PySide6.
 
-**FolderBox** 是一个使用 Python 和 PySide6 开发的轻量化 Windows 桌面文件夹可视化工具。
+**FolderBox** 是一个使用 Python 和 PySide6 开发的轻量化 Windows 桌面持久文件夹容器。
 
 ---
 
@@ -50,6 +50,10 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Drag files or folders from Windows Explorer into FolderBox.
 - Keep file icons and text clear while only the background is transparent.
 - Save window position, size, opacity, pinned state, folder path, and view mode.
+- Keep FolderBox available from the Windows system tray.
+- Hide or show all FolderBox windows from the tray.
+- Give each Box a custom title and lock its desktop position and size.
+- Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 
 ### Design Goals
 
@@ -111,6 +115,10 @@ D:/Work/Paper
 - 支持从 Windows 资源管理器拖入文件或文件夹。
 - 背景可透明，但文件图标和文字保持清晰不透明。
 - 自动保存窗口位置、大小、透明度、置顶状态、绑定路径和视图模式。
+- 支持 Windows 系统托盘常驻。
+- 可从托盘一键隐藏或显示全部 FolderBox。
+- 每个 Box 可设置独立名称，并可锁定桌面位置和大小。
+- 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
 
 ### 设计目标
 

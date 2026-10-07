@@ -74,7 +74,12 @@ TEXT = {
     "forward": "前进",
     "up": "上一级",
     "refresh": "\u5237\u65b0",
-    "pin": "\u7f6e\u9876",
+    "pin": "置顶",
+    "lock": "锁定",
+    "unlock": "解锁",
+    "lock_tip": "锁定位置和大小",
+    "rename_box": "重命名 Box",
+    "box_name": "Box 名称：",
     "new_window": "\u65b0\u7a97\u53e3",
     "view_icons": "\u56fe\u6807",
     "view_details": "\u8be6\u7ec6\u4fe1\u606f",
@@ -132,6 +137,8 @@ class MainWindow(QMainWindow):
         self._drag_offset: QPoint | None = None
         self.background_opacity = self._initial_background_opacity()
         self.view_mode = self._initial_view_mode()
+        self.box_title = str(self.initial_state.get("box_title", "") or "").strip()
+        self.locked = bool(self.initial_state.get("locked", False))
 
         self.setWindowTitle("FolderBox")
         self.setMinimumSize(320, 340)
@@ -142,6 +149,7 @@ class MainWindow(QMainWindow):
         self._connect_model_signals()
         self._apply_background_opacity(int(self.background_opacity * 100))
         self._apply_always_on_top(bool(self.initial_state.get("always_on_top", False)), initial=True)
+        self._apply_locked(self.locked, initial=True)
 
         last_folder = str(self.initial_state.get("folder", "") or "")
         if path_exists(last_folder) and Path(last_folder).is_dir():
@@ -171,8 +179,10 @@ class MainWindow(QMainWindow):
         title_layout.setContentsMargins(0, 0, 0, 0)
         title_layout.setSpacing(6)
 
-        self.title_label = QLabel("FolderBox")
+        self.title_label = QLabel(self.box_title or "FolderBox")
         self.title_label.setObjectName("titleLabel")
+        self.title_label.setToolTip("双击修改 Box 名称")
+        self.title_label.mouseDoubleClickEvent = self._title_label_double_click
         self.path_label = QLabel(TEXT["not_selected"])
         self.path_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
@@ -192,6 +202,10 @@ class MainWindow(QMainWindow):
         self.pin_button = QToolButton()
         self.pin_button.setText(TEXT["pin"])
         self.pin_button.setCheckable(True)
+        self.lock_button = QToolButton()
+        self.lock_button.setText(TEXT["lock"])
+        self.lock_button.setToolTip(TEXT["lock_tip"])
+        self.lock_button.setCheckable(True)
         self.new_window_button = QToolButton()
         self.new_window_button.setText(TEXT["new_window"])
         self.view_button = QToolButton()
@@ -217,6 +231,7 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(self.up_button)
         title_layout.addWidget(self.refresh_button)
         title_layout.addWidget(self.pin_button)
+        title_layout.addWidget(self.lock_button)
         title_layout.addWidget(self.new_window_button)
         title_layout.addWidget(self.view_button)
         title_layout.addWidget(self.opacity_slider)
@@ -296,6 +311,7 @@ class MainWindow(QMainWindow):
         self.up_button.clicked.connect(self.go_to_parent)
         self.refresh_button.clicked.connect(self.refresh_current_folder)
         self.pin_button.toggled.connect(self._apply_always_on_top)
+        self.lock_button.toggled.connect(self._apply_locked)
         self.new_window_button.clicked.connect(self.open_new_window)
         self.view_button.clicked.connect(self.toggle_view_mode)
         self.min_button.clicked.connect(self.showMinimized)
@@ -360,6 +376,47 @@ class MainWindow(QMainWindow):
         if self.manager and not initial and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
 
+    def _apply_locked(self, enabled: bool, initial: bool = False) -> None:
+        self.locked = enabled
+        if hasattr(self, "lock_button"):
+            self.lock_button.blockSignals(True)
+            self.lock_button.setChecked(enabled)
+            self.lock_button.setText(TEXT["unlock"] if enabled else TEXT["lock"])
+            self.lock_button.blockSignals(False)
+        if hasattr(self, "size_grip"):
+            self.size_grip.setVisible(not enabled)
+            self.size_grip.setEnabled(not enabled)
+        if not initial and self.manager and hasattr(self.manager, "save_window_states"):
+            self.manager.save_window_states()
+
+    def rename_box(self) -> None:
+        name, ok = QInputDialog.getText(
+            self,
+            TEXT["rename_box"],
+            TEXT["box_name"],
+            text=self.box_title,
+        )
+        if not ok:
+            return
+        self.box_title = name.strip()
+        self._sync_window_title()
+        if self.manager and hasattr(self.manager, "save_window_states"):
+            self.manager.save_window_states()
+
+    def _sync_window_title(self) -> None:
+        display_name = self.box_title or "FolderBox"
+        self.title_label.setText(display_name)
+        if self.current_folder:
+            folder_name = Path(self.current_folder).name or self.current_folder
+            self.setWindowTitle(f"{display_name} - {folder_name}")
+        else:
+            self.setWindowTitle(display_name)
+
+    def _title_label_double_click(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.rename_box()
+            event.accept()
+
     def set_current_folder(
         self,
         folder: str | Path,
@@ -401,7 +458,7 @@ class MainWindow(QMainWindow):
         self.up_button.setEnabled(False)
         self.refresh_button.setEnabled(False)
         self.status_label.setText(message)
-        self.setWindowTitle("FolderBox")
+        self._sync_window_title()
 
     def update_path_label(self) -> None:
         if not self.current_folder:
@@ -413,7 +470,7 @@ class MainWindow(QMainWindow):
         text = shorten_path(self.current_folder, min(96, max(32, available_width)))
         self.path_label.setText(text)
         self.path_label.setToolTip(self.current_folder)
-        self.setWindowTitle(f"FolderBox - {Path(self.current_folder).name or self.current_folder}")
+        self._sync_window_title()
 
     def update_navigation_buttons(self) -> None:
         if not self.current_folder:
@@ -958,6 +1015,10 @@ class MainWindow(QMainWindow):
             new_window_action = menu.addAction(TEXT["new_window"])
             choose_action = menu.addAction(TEXT["choose"])
 
+        menu.addSeparator()
+        rename_box_action = menu.addAction(TEXT["rename_box"])
+        lock_action = menu.addAction(TEXT["unlock"] if self.locked else TEXT["lock"])
+
         selected_action = menu.exec(global_position)
         if self.current_folder and selected_action == paste_action:
             self.paste_to_current_folder()
@@ -973,6 +1034,10 @@ class MainWindow(QMainWindow):
             self.toggle_view_mode()
         elif self.current_folder and selected_action == open_folder_action:
             self.open_current_folder_in_explorer()
+        elif selected_action == rename_box_action:
+            self.rename_box()
+        elif selected_action == lock_action:
+            self._apply_locked(not self.locked)
 
     def snapshot_state(self) -> dict[str, Any]:
         geometry = self.geometry()
@@ -985,6 +1050,8 @@ class MainWindow(QMainWindow):
             "always_on_top": self.pin_button.isChecked(),
             "background_opacity": round(self.background_opacity, 2),
             "view_mode": self.view_mode,
+            "box_title": self.box_title,
+            "locked": self.locked,
         }
 
     def _on_directory_loaded(self, loaded_path: str) -> None:
@@ -992,11 +1059,17 @@ class MainWindow(QMainWindow):
             self.update_folder_state(TEXT["loaded"])
 
     def _title_mouse_press(self, event: QMouseEvent) -> None:
+        if self.locked:
+            event.ignore()
+            return
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             event.accept()
 
     def _title_mouse_move(self, event: QMouseEvent) -> None:
+        if self.locked:
+            event.ignore()
+            return
         if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self._drag_offset)
             event.accept()

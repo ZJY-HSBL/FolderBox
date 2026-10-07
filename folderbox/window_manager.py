@@ -14,11 +14,20 @@ class WindowManager:
         self.app = app
         self.config = config
         self.windows: list[MainWindow] = []
-        self._last_snapshot: dict[str, Any] | None = None
         self.app.aboutToQuit.connect(self.save_window_states)
 
     def restore_windows(self) -> None:
-        states = self._valid_saved_window_states() or [DEFAULT_WINDOW_STATE.copy()]
+        active_workspace = str(self.config.get("active_workspace", "") or "")
+        workspaces = self.config.get("workspaces", {})
+        states: list[dict[str, Any]] = []
+
+        if active_workspace and isinstance(workspaces, dict):
+            states = self._normalize_window_states(workspaces.get(active_workspace, []))
+        if not states:
+            states = self._normalize_window_states(self.config.get("windows", []))
+        if not states:
+            states = [DEFAULT_WINDOW_STATE.copy()]
+
         for index, state in enumerate(states):
             self.create_window(initial_state=state, offset_index=index, show=True)
 
@@ -42,11 +51,18 @@ class WindowManager:
             window.choose_folder()
         return window
 
-    def open_new_window(self, source: MainWindow) -> None:
-        base = source.snapshot_state()
-        base["folder"] = ""
-        base["x"] = int(base.get("x", 200)) + 36
-        base["y"] = int(base.get("y", 200)) + 36
+    def open_new_window(self, source: MainWindow | None = None) -> None:
+        if source is not None:
+            base = source.snapshot_state()
+            base["folder"] = ""
+            base["box_title"] = ""
+            base["x"] = int(base.get("x", 200)) + 36
+            base["y"] = int(base.get("y", 200)) + 36
+        else:
+            base = DEFAULT_WINDOW_STATE.copy()
+            base["x"] = int(base["x"]) + len(self.windows) * 36
+            base["y"] = int(base["y"]) + len(self.windows) * 36
+
         self.create_window(
             initial_state=base,
             offset_index=len(self.windows),
@@ -56,24 +72,108 @@ class WindowManager:
         self.save_window_states()
 
     def unregister_window(self, window: MainWindow) -> None:
-        snapshot = window.snapshot_state()
-        self._last_snapshot = snapshot
         if window in self.windows:
             self.windows.remove(window)
-        self.save_window_states(fallback=snapshot)
+        self.save_window_states()
 
-    def save_window_states(self, fallback: dict[str, Any] | None = None) -> None:
-        states = [window.snapshot_state() for window in self.windows if window.isVisible()]
-        if not states and fallback:
-            states = [fallback]
-        elif not states and self._last_snapshot:
-            states = [self._last_snapshot]
+    def snapshot_windows(self) -> list[dict[str, Any]]:
+        return [window.snapshot_state() for window in self.windows]
 
+    def save_window_states(self) -> None:
+        states = self.snapshot_windows()
+        self.config.set("windows", states)
+
+        active_workspace = str(self.config.get("active_workspace", "") or "")
+        if active_workspace:
+            workspaces = dict(self.config.get("workspaces", {}) or {})
+            workspaces[active_workspace] = states
+            self.config.set("workspaces", workspaces)
+
+        self.config.save()
+
+    def hide_all(self) -> None:
+        for window in self.windows:
+            window.hide()
+
+    def show_all(self) -> None:
+        if not self.windows:
+            self.create_window(initial_state=DEFAULT_WINDOW_STATE.copy(), show=True)
+        for window in self.windows:
+            window.show()
+            window.raise_()
+
+    def toggle_all(self) -> None:
+        if any(window.isVisible() for window in self.windows):
+            self.hide_all()
+        else:
+            self.show_all()
+
+    def workspace_names(self) -> list[str]:
+        workspaces = self.config.get("workspaces", {})
+        if not isinstance(workspaces, dict):
+            return []
+        return sorted(str(name) for name in workspaces if str(name).strip())
+
+    def active_workspace(self) -> str:
+        return str(self.config.get("active_workspace", "") or "")
+
+    def save_workspace(self, name: str) -> None:
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValueError("Workspace name cannot be empty.")
+
+        states = self.snapshot_windows()
+        if not states:
+            raise ValueError("Workspace must contain at least one Box.")
+
+        workspaces = dict(self.config.get("workspaces", {}) or {})
+        workspaces[clean_name] = states
+        self.config.set("workspaces", workspaces)
+        self.config.set("active_workspace", clean_name)
         self.config.set("windows", states)
         self.config.save()
 
-    def _valid_saved_window_states(self) -> list[dict[str, Any]]:
-        raw_states = self.config.get("windows", [])
+    def load_workspace(self, name: str) -> bool:
+        clean_name = name.strip()
+        workspaces = self.config.get("workspaces", {})
+        if not clean_name or not isinstance(workspaces, dict):
+            return False
+
+        states = self._normalize_window_states(workspaces.get(clean_name, []))
+        if not states:
+            return False
+
+        self.save_window_states()
+        old_windows = list(self.windows)
+        self.windows.clear()
+        for window in old_windows:
+            window.hide()
+            window.deleteLater()
+
+        self.config.set("active_workspace", clean_name)
+        for index, state in enumerate(states):
+            self.create_window(initial_state=state, offset_index=index, show=True)
+        self.save_window_states()
+        return True
+
+    def delete_workspace(self, name: str) -> bool:
+        clean_name = name.strip()
+        workspaces = dict(self.config.get("workspaces", {}) or {})
+        if clean_name not in workspaces:
+            return False
+
+        del workspaces[clean_name]
+        self.config.set("workspaces", workspaces)
+        if self.active_workspace() == clean_name:
+            self.config.set("active_workspace", "")
+        self.config.save()
+        return True
+
+    def quit(self) -> None:
+        self.save_window_states()
+        self.app.quit()
+
+    def _normalize_window_states(self, raw_states: Any) -> list[dict[str, Any]]:
         if not isinstance(raw_states, list):
             return []
 
@@ -89,16 +189,29 @@ class WindowManager:
                     "folder": folder,
                     "x": int(item.get("x", DEFAULT_WINDOW_STATE["x"]) or DEFAULT_WINDOW_STATE["x"]),
                     "y": int(item.get("y", DEFAULT_WINDOW_STATE["y"]) or DEFAULT_WINDOW_STATE["y"]),
-                    "width": int(item.get("width", DEFAULT_WINDOW_STATE["width"]) or DEFAULT_WINDOW_STATE["width"]),
-                    "height": int(item.get("height", DEFAULT_WINDOW_STATE["height"]) or DEFAULT_WINDOW_STATE["height"]),
-                    "always_on_top": bool(item.get("always_on_top", DEFAULT_WINDOW_STATE["always_on_top"])),
+                    "width": int(
+                        item.get("width", DEFAULT_WINDOW_STATE["width"])
+                        or DEFAULT_WINDOW_STATE["width"]
+                    ),
+                    "height": int(
+                        item.get("height", DEFAULT_WINDOW_STATE["height"])
+                        or DEFAULT_WINDOW_STATE["height"]
+                    ),
+                    "always_on_top": bool(
+                        item.get("always_on_top", DEFAULT_WINDOW_STATE["always_on_top"])
+                    ),
                     "background_opacity": float(
-                        item.get("background_opacity", DEFAULT_WINDOW_STATE["background_opacity"])
+                        item.get(
+                            "background_opacity",
+                            DEFAULT_WINDOW_STATE["background_opacity"],
+                        )
                     ),
                     "view_mode": str(
                         item.get("view_mode", DEFAULT_WINDOW_STATE["view_mode"])
                         or DEFAULT_WINDOW_STATE["view_mode"]
                     ),
+                    "box_title": str(item.get("box_title", "") or ""),
+                    "locked": bool(item.get("locked", False)),
                 }
             )
         return states
