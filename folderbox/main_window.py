@@ -16,8 +16,6 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QCloseEvent,
-    QDragEnterEvent,
-    QDropEvent,
     QKeyEvent,
     QKeySequence,
     QMouseEvent,
@@ -31,7 +29,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
     QLabel,
-    QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -42,7 +39,6 @@ from PySide6.QtWidgets import (
     QSlider,
     QStackedWidget,
     QToolButton,
-    QTreeView,
     QVBoxLayout,
     QWidget,
 )
@@ -61,6 +57,7 @@ from folderbox.file_ops import (
     show_in_explorer,
 )
 from folderbox.tasks import FunctionTask
+from folderbox.ui.folder_views import DesktopListView, DesktopTreeView, DropLabel
 from folderbox.utils import format_exception, path_exists, shorten_path
 
 
@@ -105,98 +102,6 @@ TEXT = {
     "opacity_tip": "\u80cc\u666f\u900f\u660e\u5ea6\uff08\u56fe\u6807\u548c\u6587\u5b57\u4fdd\u6301\u4e0d\u900f\u660e\uff09",
     "drop_copy": "\u5df2\u62d6\u5165\u590d\u5236 {count} \u4e2a\u9879\u76ee",
 }
-
-
-class DesktopListView(QListView):
-    def __init__(self, window: "MainWindow") -> None:
-        super().__init__(window)
-        self.window = window
-        self.setAcceptDrops(True)
-        self.setDragEnabled(True)
-        self.setDropIndicatorShown(True)
-        self.setDefaultDropAction(Qt.DropAction.CopyAction)
-        self.setDragDropMode(QAbstractItemView.DragDrop)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if self.window.handle_file_view_key(event, self):
-            return
-        super().keyPressEvent(event)
-
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragMoveEvent(event)
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            position = event.position().toPoint()
-            self.window.copy_dropped_files(event.mimeData(), self.indexAt(position))
-            event.acceptProposedAction()
-        else:
-            super().dropEvent(event)
-
-
-class DesktopTreeView(QTreeView):
-    def __init__(self, window: "MainWindow") -> None:
-        super().__init__(window)
-        self.window = window
-        self.setAcceptDrops(True)
-        self.setDragEnabled(True)
-        self.setDropIndicatorShown(True)
-        self.setDefaultDropAction(Qt.DropAction.CopyAction)
-        self.setDragDropMode(QAbstractItemView.DragDrop)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if self.window.handle_file_view_key(event, self):
-            return
-        super().keyPressEvent(event)
-
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragMoveEvent(event)
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            position = event.position().toPoint()
-            self.window.copy_dropped_files(event.mimeData(), self.indexAt(position))
-            event.acceptProposedAction()
-        else:
-            super().dropEvent(event)
-
-
-class DropLabel(QLabel):
-    def __init__(self, window: "MainWindow") -> None:
-        super().__init__(window)
-        self.window = window
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            self.window.copy_dropped_files(event.mimeData(), QModelIndex())
-            event.acceptProposedAction()
-        else:
-            event.ignore()
 
 
 class MainWindow(QMainWindow):
