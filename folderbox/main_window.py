@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QListView,
     QMainWindow,
     QMenu,
@@ -38,7 +39,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QHeaderView,
     QSizeGrip,
-    QSizePolicy,
     QSlider,
     QStackedWidget,
     QToolButton,
@@ -60,9 +60,10 @@ from folderbox.file_ops import (
     show_in_explorer,
 )
 from folderbox.tasks import FunctionTask
+from folderbox.ui.breadcrumb import BreadcrumbBar
 from folderbox.ui.folder_views import DesktopListView, DesktopTreeView, DropLabel
 from folderbox.ui.theme import build_stylesheet
-from folderbox.utils import format_exception, path_exists, shorten_path
+from folderbox.utils import format_exception, path_exists
 
 
 FOLDERBOX_CLIPBOARD_ACTION = "application/x-folderbox-action"
@@ -183,9 +184,6 @@ class MainWindow(QMainWindow):
         self.title_label.setObjectName("titleLabel")
         self.title_label.setToolTip("双击修改 Box 名称")
         self.title_label.mouseDoubleClickEvent = self._title_label_double_click
-        self.path_label = QLabel(TEXT["not_selected"])
-        self.path_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
 
         self.choose_button = QPushButton(TEXT["choose"])
         self.back_button = QToolButton()
@@ -224,12 +222,7 @@ class MainWindow(QMainWindow):
         self.opacity_slider.setValue(int(self.background_opacity * 100))
 
         title_layout.addWidget(self.title_label)
-        title_layout.addWidget(self.path_label, 1)
-        title_layout.addWidget(self.choose_button)
-        title_layout.addWidget(self.back_button)
-        title_layout.addWidget(self.forward_button)
-        title_layout.addWidget(self.up_button)
-        title_layout.addWidget(self.refresh_button)
+        title_layout.addStretch(1)
         title_layout.addWidget(self.pin_button)
         title_layout.addWidget(self.lock_button)
         title_layout.addWidget(self.new_window_button)
@@ -238,6 +231,28 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(self.min_button)
         title_layout.addWidget(self.close_button)
         root_layout.addWidget(self.title_bar)
+
+        self.navigation_bar = QWidget()
+        self.navigation_bar.setObjectName("navigationBar")
+        navigation_layout = QHBoxLayout(self.navigation_bar)
+        navigation_layout.setContentsMargins(0, 0, 0, 0)
+        navigation_layout.setSpacing(5)
+
+        self.breadcrumb = BreadcrumbBar(self.navigation_bar)
+        self.search_edit = QLineEdit(self.navigation_bar)
+        self.search_edit.setPlaceholderText("筛选当前文件夹…")
+        self.search_edit.setClearButtonEnabled(True)
+        self.search_edit.setMaximumWidth(190)
+        self.search_edit.setToolTip("输入文件名进行快速过滤；支持 * 和 ? 通配符")
+
+        navigation_layout.addWidget(self.choose_button)
+        navigation_layout.addWidget(self.back_button)
+        navigation_layout.addWidget(self.forward_button)
+        navigation_layout.addWidget(self.up_button)
+        navigation_layout.addWidget(self.breadcrumb, 1)
+        navigation_layout.addWidget(self.search_edit)
+        navigation_layout.addWidget(self.refresh_button)
+        root_layout.addWidget(self.navigation_bar)
 
         self.list_view = DesktopListView(self)
         self.list_view.setModel(self.file_model.model)
@@ -310,6 +325,10 @@ class MainWindow(QMainWindow):
         self.forward_button.clicked.connect(self.go_forward)
         self.up_button.clicked.connect(self.go_to_parent)
         self.refresh_button.clicked.connect(self.refresh_current_folder)
+        self.breadcrumb.pathSelected.connect(
+            lambda path: self.set_current_folder(path, TEXT["entered"])
+        )
+        self.search_edit.textChanged.connect(self.apply_search_filter)
         self.pin_button.toggled.connect(self._apply_always_on_top)
         self.lock_button.toggled.connect(self._apply_locked)
         self.new_window_button.clicked.connect(self.open_new_window)
@@ -436,6 +455,9 @@ class MainWindow(QMainWindow):
                 self._history.append(target)
                 self._history_index = len(self._history) - 1
 
+        if target != self.current_folder and self.search_edit.text():
+            self.search_edit.clear()
+
         self.current_folder = target
         root_index = self.file_model.set_root_path(path)
         self.list_view.setRootIndex(root_index)
@@ -449,8 +471,7 @@ class MainWindow(QMainWindow):
 
     def show_empty_state(self, message: str) -> None:
         self.current_folder = ""
-        self.path_label.setText(TEXT["not_selected"])
-        self.path_label.setToolTip("")
+        self.breadcrumb.set_path("")
         self.empty_label.setText(message)
         self.stack.setCurrentWidget(self.empty_label)
         self.back_button.setEnabled(False)
@@ -461,15 +482,7 @@ class MainWindow(QMainWindow):
         self._sync_window_title()
 
     def update_path_label(self) -> None:
-        if not self.current_folder:
-            self.path_label.setText(TEXT["not_selected"])
-            self.path_label.setToolTip("")
-            return
-        char_width = max(1, self.path_label.fontMetrics().averageCharWidth())
-        available_width = max(24, self.path_label.width() // char_width)
-        text = shorten_path(self.current_folder, min(96, max(32, available_width)))
-        self.path_label.setText(text)
-        self.path_label.setToolTip(self.current_folder)
+        self.breadcrumb.set_path(self.current_folder)
         self._sync_window_title()
 
     def update_navigation_buttons(self) -> None:
@@ -501,6 +514,12 @@ class MainWindow(QMainWindow):
         text = message or TEXT["ready"]
         self.status_label.setText(f"{count} \u4e2a\u9879\u76ee / {text}")
         self.update_navigation_buttons()
+
+    def apply_search_filter(self, text: str) -> None:
+        self.file_model.set_name_filter(text)
+        if self.current_folder:
+            message = f"筛选：{text}" if text.strip() else TEXT["ready"]
+            self.update_folder_state(message)
 
     def selected_paths(self) -> list[str]:
         view = self.active_file_view()

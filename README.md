@@ -45,7 +45,8 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Copy, cut, paste, move, rename, refresh, and delete files or folders.
 - Create folders directly inside the current FolderBox.
 - Run copy, move, and recycle-bin operations in background tasks so the UI stays responsive.
-- Navigate with Back, Forward, and Up history controls.
+- Navigate with Back, Forward, Up, and a clickable breadcrumb path bar.
+- Filter the current folder instantly by file name, with optional `*` and `?` wildcard patterns.
 - Move deleted items to the recycle bin instead of permanently deleting them.
 - Drag files or folders from Windows Explorer into FolderBox.
 - Keep file icons and text clear while only the background is transparent.
@@ -110,7 +111,8 @@ D:/Work/Paper
 - 支持复制、剪切、粘贴、移动、重命名、刷新、删除文件或文件夹。
 - 支持直接在当前 FolderBox 中新建文件夹。
 - 复制、移动和移入回收站等文件操作使用后台任务执行，减少界面卡顿。
-- 支持后退、前进和返回上一级的目录导航。
+- 支持后退、前进、返回上一级以及可点击的 Breadcrumb 路径导航。
+- 支持按文件名快速过滤当前目录，并可使用 `*`、`?` 通配符。
 - 删除操作优先移入回收站，而不是永久删除。
 - 支持从 Windows 资源管理器拖入文件或文件夹。
 - 背景可透明，但文件图标和文字保持清晰不透明。
