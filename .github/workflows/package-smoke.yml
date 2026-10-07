@@ -26,6 +26,12 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -e ".[build,dev]"
 
+      - name: Resolve package version
+        shell: pwsh
+        run: |
+          $version = python -c "import folderbox; print(folderbox.__version__)"
+          "FOLDERBOX_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Quality checks
         run: |
           python -m ruff check folderbox tests
@@ -55,7 +61,7 @@ jobs:
       - name: Build package artifacts
         shell: pwsh
         run: |
-          $version = "1.1.0-smoke"
+          $version = "$env:FOLDERBOX_VERSION-smoke"
           New-Item -ItemType Directory -Force release | Out-Null
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "packaging\FolderBox.iss"
 
@@ -80,7 +86,7 @@ jobs:
       - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: FolderBox-v1.1.0-smoke
+          name: FolderBox-package-smoke
           path: release/*
           if-no-files-found: error
           retention-days: 7
