@@ -281,7 +281,10 @@ class WindowManager:
         if clean_name not in self.workspace_names():
             return False
 
-        clean_slot = int(slot or 0)
+        try:
+            clean_slot = int(slot or 0)
+        except (TypeError, ValueError):
+            return False
         if clean_slot and clean_slot not in WORKSPACE_HOTKEY_SLOTS:
             return False
 
