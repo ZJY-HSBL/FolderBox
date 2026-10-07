@@ -2,6 +2,21 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.4.0] - Unreleased
+
+### Added
+
+- Added multi-Box layout templates for balanced grid, horizontal columns, vertical rows, and cascade arrangements.
+- Added one-click layout template actions to the system tray.
+- Added current-desktop arrangement controls to the Workspace manager.
+- Added multi-monitor-aware arrangement so each screen organizes only its own visible, unlocked Boxes.
+
+### Changed
+
+- Dense row/column layouts automatically wrap when equal cells would fall below FolderBox minimum usable dimensions.
+- Locked Boxes are excluded from automatic multi-Box arrangement.
+- Multi-Box geometry generation is centralized in the desktop layout module.
+
 ## [1.3.0] - 2026-10-08
 
 ### Added
