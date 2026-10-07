@@ -88,3 +88,28 @@ def test_empty_window_state_does_not_erase_active_workspace(tmp_path) -> None:
     assert config.get("workspaces")["Research"] == [
         {"folder": "D:/Research", "box_title": "Papers"}
     ]
+
+
+
+def test_rename_workspace_preserves_active_state(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+
+    assert manager.rename_workspace("Research", "Papers")
+    assert manager.active_workspace() == "Papers"
+    assert manager.workspace_names() == ["Papers"]
+    assert manager.workspace_box_count("Papers") == 1
+
+
+def test_rename_workspace_rejects_duplicate_name(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "A"})]
+    manager.save_workspace("One")
+    manager.windows = [FakeWindow({"folder": "B"})]
+    manager.save_workspace("Two")
+
+    assert not manager.rename_workspace("One", "Two")
+    assert manager.workspace_names() == ["One", "Two"]

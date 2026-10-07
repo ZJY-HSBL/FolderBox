@@ -20,6 +20,18 @@ def test_main_window_builds_product_chrome(tmp_path) -> None:
     assert window.view_button.icon().isNull() is False
     assert window.min_button.icon().isNull() is False
     assert window.close_button.icon().isNull() is False
+    assert window.theme_mode == "light"
+    assert window.accent_color == "#3b82f6"
+    assert window.icon_size == 40
+
+    window._apply_theme_mode("dark")
+    window._apply_accent_color("#8b5cf6")
+    window._apply_icon_size(56)
+    state = window.snapshot_state()
+
+    assert state["theme_mode"] == "dark"
+    assert state["accent_color"] == "#8b5cf6"
+    assert state["icon_size"] == 56
 
     window.close()
     app.processEvents()

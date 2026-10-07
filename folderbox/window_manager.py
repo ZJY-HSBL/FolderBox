@@ -156,6 +156,32 @@ class WindowManager:
         self.save_window_states()
         return True
 
+    def rename_workspace(self, old_name: str, new_name: str) -> bool:
+        old_clean = old_name.strip()
+        new_clean = new_name.strip()
+        if not old_clean or not new_clean:
+            return False
+
+        workspaces = dict(self.config.get("workspaces", {}) or {})
+        if old_clean not in workspaces or (new_clean != old_clean and new_clean in workspaces):
+            return False
+        if new_clean == old_clean:
+            return True
+
+        workspaces[new_clean] = workspaces.pop(old_clean)
+        self.config.set("workspaces", workspaces)
+        if self.active_workspace() == old_clean:
+            self.config.set("active_workspace", new_clean)
+        self.config.save()
+        return True
+
+    def workspace_box_count(self, name: str) -> int:
+        workspaces = self.config.get("workspaces", {})
+        if not isinstance(workspaces, dict):
+            return 0
+        states = workspaces.get(name, [])
+        return len(states) if isinstance(states, list) else 0
+
     def delete_workspace(self, name: str) -> bool:
         clean_name = name.strip()
         workspaces = dict(self.config.get("workspaces", {}) or {})
@@ -212,6 +238,18 @@ class WindowManager:
                     ),
                     "box_title": str(item.get("box_title", "") or ""),
                     "locked": bool(item.get("locked", False)),
+                    "theme_mode": str(
+                        item.get("theme_mode", DEFAULT_WINDOW_STATE["theme_mode"])
+                        or DEFAULT_WINDOW_STATE["theme_mode"]
+                    ),
+                    "accent_color": str(
+                        item.get("accent_color", DEFAULT_WINDOW_STATE["accent_color"])
+                        or DEFAULT_WINDOW_STATE["accent_color"]
+                    ),
+                    "icon_size": int(
+                        item.get("icon_size", DEFAULT_WINDOW_STATE["icon_size"])
+                        or DEFAULT_WINDOW_STATE["icon_size"]
+                    ),
                 }
             )
         return states

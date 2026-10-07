@@ -18,6 +18,9 @@ DEFAULT_WINDOW_STATE: dict[str, Any] = {
     "view_mode": "icons",
     "box_title": "",
     "locked": False,
+    "theme_mode": "light",
+    "accent_color": "#3b82f6",
+    "icon_size": 40,
 }
 
 DEFAULT_CONFIG: dict[str, Any] = {
