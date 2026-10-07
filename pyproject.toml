@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "folderbox"
-version = "1.1.0"
+dynamic = ["version"]
 description = "Lightweight persistent folder portals for the Windows desktop"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,6 +32,9 @@ select = ["E9", "F", "B"]
 
 [project.scripts]
 folderbox = "folderbox.app:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "folderbox.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["folderbox*"]

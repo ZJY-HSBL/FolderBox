@@ -1,6 +1,6 @@
 #define MyAppName "FolderBox"
 #ifndef MyAppVersion
-  #define MyAppVersion "1.1.0"
+  #error MyAppVersion must be defined by the build pipeline
 #endif
 #define MyAppPublisher "FolderBox"
 #define MyAppExeName "FolderBox.exe"

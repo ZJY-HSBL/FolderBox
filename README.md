@@ -22,7 +22,7 @@ Real folder on disk  ->  Visual folder box on desktop
 
 ![FolderBox preview](images/example.png)
 
-Install for development with `python -m pip install -e .`, then launch with `folderbox`.
+For normal Windows use, download either the installer or portable package from GitHub Releases. For development, run `python -m pip install -e .` and launch with `folderbox`.
 
 > Note: File names in the screenshot have been pixelated for privacy.
 
@@ -57,6 +57,19 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Give each Box a custom title and lock its desktop position and size.
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 
+### Keyboard Shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
+| `Ctrl+Shift+N` | Create folder |
+| `Ctrl+F` | Focus current-folder filter |
+| `Alt+Left` / `Alt+Right` | Back / forward |
+| `Backspace` | Up one folder |
+| `F2` | Rename selected item |
+| `Delete` | Move selected items to recycle bin |
+| `F5` | Refresh |
+
 ### Design Goals
 
 FolderBox is designed to be quiet, lightweight, and stable for long-term desktop use.
@@ -89,7 +102,7 @@ FolderBox 不是传统意义上的文件管理器。它的目标是把一个真�
 
 ![FolderBox 界面预览](images/example.png)
 
-开发环境可执行 `python -m pip install -e .` 安装，然后使用 `folderbox` 启动。
+普通 Windows 用户可直接从 GitHub Releases 下载安装版或 Portable 便携版。开发环境可执行 `python -m pip install -e .` 安装，然后使用 `folderbox` 启动。
 
 > 备注：截图中的文件名因隐私原因已打上马赛克。
 
@@ -123,6 +136,19 @@ D:/Work/Paper
 - 可直接在托盘中开启或关闭 Windows 开机启动。
 - 每个 Box 可设置独立名称，并可锁定桌面位置和大小。
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
+
+### 常用快捷键
+
+| 快捷键 | 功能 |
+| --- | --- |
+| `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | 复制 / 剪切 / 粘贴 |
+| `Ctrl+Shift+N` | 新建文件夹 |
+| `Ctrl+F` | 聚焦当前目录过滤框 |
+| `Alt+Left` / `Alt+Right` | 后退 / 前进 |
+| `Backspace` | 返回上一级 |
+| `F2` | 重命名选中项目 |
+| `Delete` | 将选中项目移入回收站 |
+| `F5` | 刷新 |
 
 ### 设计目标
 

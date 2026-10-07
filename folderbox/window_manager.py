@@ -84,7 +84,7 @@ class WindowManager:
         self.config.set("windows", states)
 
         active_workspace = str(self.config.get("active_workspace", "") or "")
-        if active_workspace:
+        if active_workspace and states:
             workspaces = dict(self.config.get("workspaces", {}) or {})
             workspaces[active_workspace] = states
             self.config.set("workspaces", workspaces)
