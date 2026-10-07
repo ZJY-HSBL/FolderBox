@@ -2,6 +2,20 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.5.0] - Unreleased
+
+### Added
+
+- Added per-Box edge auto-hide with hover-to-expand behavior.
+- Added a compact edge trigger strip that keeps auto-hidden Boxes reachable without changing their actual window size.
+- Added persisted `edge_peek_enabled` state to individual Boxes and Workspaces.
+
+### Changed
+
+- Edge-peek collapse is runtime-only; saved geometry always uses the expanded Box position.
+- Global show-all, Explorer/IPC folder opens, manual placement, and automatic arrangement force edge-peek Boxes back to their expanded geometry first.
+- Edge-peek collapse is delayed after pointer leave to reduce accidental hiding and is suppressed while popup menus are active.
+
 ## [1.4.0] - 2026-10-08
 
 ### Added
