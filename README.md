@@ -54,6 +54,8 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Keep FolderBox available from the Windows system tray.
 - Hide or show all FolderBox windows from the tray.
 - Enable or disable launch-at-login directly from the tray.
+- Optionally add `Open in FolderBox` to Windows Explorer folder context menus.
+- Route repeated launches and Explorer requests to the already-running FolderBox instance.
 - Give each Box a custom title and lock its desktop position and size.
 - Personalize each Box with light/dark theme, accent color, and icon size.
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
@@ -136,6 +138,8 @@ D:/Work/Paper
 - 支持 Windows 系统托盘常驻。
 - 可从托盘一键隐藏或显示全部 FolderBox。
 - 可直接在托盘中开启或关闭 Windows 开机启动。
+- 可选启用 Windows 资源管理器文件夹右键菜单中的 `Open in FolderBox`。
+- 重复启动和资源管理器目录请求会转发给已运行的 FolderBox 实例，不重复创建托盘进程。
 - 每个 Box 可设置独立名称，并可锁定桌面位置和大小。
 - 每个 Box 可独立设置浅色/深色主题、强调色和图标大小。
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
