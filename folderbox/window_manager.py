@@ -212,6 +212,18 @@ class WindowManager:
                     ),
                     "box_title": str(item.get("box_title", "") or ""),
                     "locked": bool(item.get("locked", False)),
+                    "theme_mode": str(
+                        item.get("theme_mode", DEFAULT_WINDOW_STATE["theme_mode"])
+                        or DEFAULT_WINDOW_STATE["theme_mode"]
+                    ),
+                    "accent_color": str(
+                        item.get("accent_color", DEFAULT_WINDOW_STATE["accent_color"])
+                        or DEFAULT_WINDOW_STATE["accent_color"]
+                    ),
+                    "icon_size": int(
+                        item.get("icon_size", DEFAULT_WINDOW_STATE["icon_size"])
+                        or DEFAULT_WINDOW_STATE["icon_size"]
+                    ),
                 }
             )
         return states
