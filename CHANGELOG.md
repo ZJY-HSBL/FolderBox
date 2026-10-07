@@ -2,7 +2,7 @@
 
 All notable changes to FolderBox are documented here.
 
-## [1.2.0] - Unreleased
+## [1.2.0] - 2026-10-08
 
 ### Added
 
@@ -19,6 +19,12 @@ All notable changes to FolderBox are documented here.
 
 - Consolidated Workspace management into one dedicated dialog while keeping quick switching in the tray.
 - External folder requests reuse an empty Box when possible and otherwise open a managed Box that inherits appearance settings.
+- Consolidated icon/detail drag behavior into a shared file-view drag/drop layer.
+
+### Fixed
+
+- Improved repeated-launch behavior by routing new folder requests to the existing FolderBox process instead of creating duplicate tray instances.
+- Preserved per-Box appearance and layout state when folders are opened from Windows Explorer.
 
 ## [1.1.0] - 2026-10-07
 
