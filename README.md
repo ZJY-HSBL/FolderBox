@@ -61,6 +61,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Personalize each Box with light/dark theme, accent color, and icon size.
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 - Manage Workspaces from a dedicated visual manager while keeping tray-based quick switching.
+- Assign an optional automatic layout policy to each Workspace so switching can reflow Boxes into grid, column, row, or cascade arrangements.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
@@ -154,6 +155,7 @@ D:/Work/Paper
 - 每个 Box 可独立设置浅色/深色主题、强调色和图标大小。
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
 - 提供独立 Workspace 管理窗口，同时保留托盘快速切换。
+- 可为每个 Workspace 设置独立自动布局策略，切换时自动按网格、横向分栏、纵向分栏或瀑布模式重新整理 Box。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
