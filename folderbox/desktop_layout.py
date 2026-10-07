@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from PySide6.QtCore import QPoint, QRect, QSize
 
 
@@ -79,3 +81,61 @@ def placement_position(
             screen.top() + (screen.height() - current.height()) // 2,
         )
     raise ValueError(f"Unknown placement: {placement}")
+
+
+
+def layout_rectangles(
+    mode: str,
+    count: int,
+    screen: QRect,
+    gap: int = 8,
+    cascade_size: QSize = QSize(420, 520),
+) -> list[QRect]:
+    if count <= 0:
+        return []
+
+    if mode == "grid":
+        columns = max(1, math.ceil(math.sqrt(count)))
+        rows = max(1, math.ceil(count / columns))
+    elif mode == "columns":
+        columns = count
+        rows = 1
+    elif mode == "rows":
+        columns = 1
+        rows = count
+    elif mode == "cascade":
+        width = min(cascade_size.width(), max(320, screen.width() - gap * 2))
+        height = min(cascade_size.height(), max(340, screen.height() - gap * 2))
+        max_x = max(screen.left() + gap, screen.right() - width + 1 - gap)
+        max_y = max(screen.top() + gap, screen.bottom() - height + 1 - gap)
+        step = 28
+        rectangles: list[QRect] = []
+        for index in range(count):
+            x = min(screen.left() + gap + index * step, max_x)
+            y = min(screen.top() + gap + index * step, max_y)
+            rectangles.append(QRect(x, y, width, height))
+        return rectangles
+    else:
+        raise ValueError(f"Unknown layout mode: {mode}")
+
+    usable_width = max(1, screen.width() - gap * (columns + 1))
+    usable_height = max(1, screen.height() - gap * (rows + 1))
+    cell_width = max(1, usable_width // columns)
+    cell_height = max(1, usable_height // rows)
+
+    rectangles = []
+    for index in range(count):
+        row = index // columns
+        column = index % columns
+        x = screen.left() + gap + column * (cell_width + gap)
+        y = screen.top() + gap + row * (cell_height + gap)
+        width = cell_width
+        height = cell_height
+
+        if column == columns - 1:
+            width = screen.right() - gap - x + 1
+        if row == rows - 1:
+            height = screen.bottom() - gap - y + 1
+
+        rectangles.append(QRect(x, y, width, height))
+    return rectangles
