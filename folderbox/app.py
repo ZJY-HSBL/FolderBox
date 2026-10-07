@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication
 
 from folderbox import __app_name__
 from folderbox.config_manager import ConfigManager
+from folderbox.tray import TrayController
 from folderbox.window_manager import WindowManager
 
 
@@ -46,7 +47,16 @@ def run_app(argv: list[str]) -> int:
     app, config = create_app(argv)
     manager = WindowManager(app, config)
     manager.restore_windows()
-    return app.exec()
+
+    tray: TrayController | None = None
+    if TrayController.is_available():
+        app.setQuitOnLastWindowClosed(False)
+        tray = TrayController(app, manager)
+        tray.show()
+
+    exit_code = app.exec()
+    del tray
+    return exit_code
 
 
 def main() -> int:
