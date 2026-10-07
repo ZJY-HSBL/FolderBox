@@ -206,6 +206,19 @@ class WindowManager:
     def active_workspace(self) -> str:
         return str(self.config.get("active_workspace", "") or "")
 
+    def cycle_workspace(self, step: int) -> bool:
+        names = self.workspace_names()
+        if not names:
+            return False
+
+        active = self.active_workspace()
+        if active in names:
+            index = names.index(active)
+            target = names[(index + (1 if step >= 0 else -1)) % len(names)]
+        else:
+            target = names[0 if step >= 0 else -1]
+        return self.load_workspace(target)
+
     def save_workspace(self, name: str) -> None:
         clean_name = name.strip()
         if not clean_name:
