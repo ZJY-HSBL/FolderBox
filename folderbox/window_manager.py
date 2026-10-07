@@ -3,9 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication
 
 from folderbox.config_manager import ConfigManager, DEFAULT_WINDOW_STATE
+from folderbox.desktop_layout import placement_position, snapped_position
 from folderbox.main_window import MainWindow
 from folderbox.utils import path_exists
 
@@ -153,6 +155,47 @@ class WindowManager:
             self.hide_all()
         else:
             self.show_all()
+
+    def is_snap_enabled(self) -> bool:
+        return bool(self.config.get("snap_enabled", True))
+
+    def set_snap_enabled(self, enabled: bool) -> None:
+        self.config.set("snap_enabled", bool(enabled))
+        self.config.save()
+
+    def snap_window_position(self, window: MainWindow, desired: QPoint) -> QPoint:
+        if not self.is_snap_enabled():
+            return desired
+
+        screen = window.screen() or self.app.primaryScreen()
+        if screen is None:
+            return desired
+
+        peers = [
+            other.geometry()
+            for other in self.windows
+            if other is not window and other.isVisible()
+        ]
+        return snapped_position(
+            desired,
+            window.size(),
+            screen.availableGeometry(),
+            peers,
+        )
+
+    def place_window(self, window: MainWindow, placement: str) -> bool:
+        screen = window.screen() or self.app.primaryScreen()
+        if screen is None:
+            return False
+        target = placement_position(
+            placement,
+            window.geometry(),
+            screen.availableGeometry(),
+            margin=8,
+        )
+        window.move(target)
+        self.save_window_states()
+        return True
 
     def workspace_names(self) -> list[str]:
         workspaces = self.config.get("workspaces", {})
