@@ -62,6 +62,8 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 - Manage Workspaces from a dedicated visual manager while keeping tray-based quick switching.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
+- Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
+- Apply layout templates independently per monitor while leaving locked Boxes untouched.
 - Switch to the previous or next Workspace directly from the tray.
 - Hide or show every Box globally with `Ctrl+Alt+B` on Windows.
 
@@ -152,6 +154,8 @@ D:/Work/Paper
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
 - 提供独立 Workspace 管理窗口，同时保留托盘快速切换。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
+- 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
+- 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
 - 可直接从托盘切换上一个或下一个 Workspace。
 - Windows 下可使用全局快捷键 `Ctrl+Alt+B` 一键隐藏或显示全部 Box。
 
