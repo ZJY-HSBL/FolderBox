@@ -66,14 +66,15 @@ def run_app(argv: list[str]) -> int:
         manager.open_folder_window(folder)
 
     hotkey: GlobalHotkeyController | None = None
+    hotkey_active = False
     if is_windows():
         hotkey = GlobalHotkeyController(app, manager.toggle_all)
-        hotkey.register()
+        hotkey_active = hotkey.register()
 
     tray: TrayController | None = None
     if TrayController.is_available():
         app.setQuitOnLastWindowClosed(False)
-        tray = TrayController(app, manager)
+        tray = TrayController(app, manager, global_hotkey_active=hotkey_active)
         tray.show()
 
     exit_code = app.exec()
