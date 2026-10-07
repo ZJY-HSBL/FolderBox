@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "folderbox"
 version = "1.1.0"
-description = "Lightweight desktop folder visualization for Windows"
+description = "Lightweight persistent folder portals for the Windows desktop"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
