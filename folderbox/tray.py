@@ -25,6 +25,8 @@ class TrayController:
         self.workspace_menu = self.menu.addMenu("工作区")
         self.save_workspace_action = QAction("保存当前工作区…", self.menu)
         self.manage_workspaces_action = QAction("管理工作区…", self.menu)
+        self.snap_action = QAction("Box 自动吸附", self.menu)
+        self.snap_action.setCheckable(True)
         self.startup_action = QAction("开机启动", self.menu)
         self.startup_action.setCheckable(True)
         self.shell_action = QAction("资源管理器右键菜单", self.menu)
@@ -35,6 +37,7 @@ class TrayController:
         self.menu.insertAction(self.workspace_menu.menuAction(), self.new_box_action)
         self.menu.insertSeparator(self.workspace_menu.menuAction())
         self.menu.addSeparator()
+        self.menu.addAction(self.snap_action)
         self.menu.addAction(self.startup_action)
         self.menu.addAction(self.shell_action)
         self.menu.addAction(self.quit_action)
@@ -43,6 +46,7 @@ class TrayController:
         self.new_box_action.triggered.connect(lambda: self.manager.open_new_window(None))
         self.save_workspace_action.triggered.connect(self.save_workspace)
         self.manage_workspaces_action.triggered.connect(self.manage_workspaces)
+        self.snap_action.toggled.connect(self.manager.set_snap_enabled)
         self.startup_action.triggered.connect(self.set_startup)
         self.shell_action.triggered.connect(self.set_shell_integration)
         self.quit_action.triggered.connect(self.manager.quit)
@@ -62,6 +66,10 @@ class TrayController:
         self.tray.show()
 
     def refresh_workspace_menu(self) -> None:
+        self.snap_action.blockSignals(True)
+        self.snap_action.setChecked(self.manager.is_snap_enabled())
+        self.snap_action.blockSignals(False)
+
         self.startup_action.blockSignals(True)
         self.startup_action.setChecked(is_startup_enabled())
         self.startup_action.blockSignals(False)
