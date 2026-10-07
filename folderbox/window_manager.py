@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from folderbox.utils import path_exists
 
 
 WORKSPACE_LAYOUT_MODES = {"grid", "columns", "rows", "cascade"}
+WORKSPACE_HOTKEY_SLOTS = set(range(1, 10))
 
 
 class WindowManager:
@@ -20,6 +22,7 @@ class WindowManager:
         self.app = app
         self.config = config
         self.windows: list[MainWindow] = []
+        self._workspace_change_listeners: list[Callable[[], None]] = []
         self.app.aboutToQuit.connect(self.save_window_states)
 
     def restore_windows(self) -> None:
@@ -246,6 +249,61 @@ class WindowManager:
     def active_workspace(self) -> str:
         return str(self.config.get("active_workspace", "") or "")
 
+    def add_workspace_change_listener(self, callback: Callable[[], None]) -> None:
+        if callback not in self._workspace_change_listeners:
+            self._workspace_change_listeners.append(callback)
+
+    def _notify_workspace_change(self) -> None:
+        for callback in tuple(self._workspace_change_listeners):
+            callback()
+
+    def workspace_hotkey_slot(self, name: str) -> int:
+        clean_name = name.strip()
+        hotkeys = self.config.get("workspace_hotkeys", {})
+        if not clean_name or not isinstance(hotkeys, dict):
+            return 0
+        try:
+            slot = int(hotkeys.get(clean_name, 0) or 0)
+        except (TypeError, ValueError):
+            return 0
+        return slot if slot in WORKSPACE_HOTKEY_SLOTS else 0
+
+    def workspace_hotkey_bindings(self) -> dict[int, str]:
+        bindings: dict[int, str] = {}
+        for name in self.workspace_names():
+            slot = self.workspace_hotkey_slot(name)
+            if slot and slot not in bindings:
+                bindings[slot] = name
+        return bindings
+
+    def set_workspace_hotkey_slot(self, name: str, slot: int | None) -> bool:
+        clean_name = name.strip()
+        if clean_name not in self.workspace_names():
+            return False
+
+        clean_slot = int(slot or 0)
+        if clean_slot and clean_slot not in WORKSPACE_HOTKEY_SLOTS:
+            return False
+
+        bindings = self.workspace_hotkey_bindings()
+        owner = bindings.get(clean_slot)
+        if clean_slot and owner and owner != clean_name:
+            return False
+
+        hotkeys = dict(self.config.get("workspace_hotkeys", {}) or {})
+        if clean_slot:
+            hotkeys[clean_name] = clean_slot
+        else:
+            hotkeys.pop(clean_name, None)
+        self.config.set("workspace_hotkeys", hotkeys)
+        self.config.save()
+        self._notify_workspace_change()
+        return True
+
+    def load_workspace_by_hotkey(self, slot: int) -> bool:
+        name = self.workspace_hotkey_bindings().get(slot, "")
+        return self.load_workspace(name) if name else False
+
     def workspace_layout_mode(self, name: str) -> str:
         clean_name = name.strip()
         layouts = self.config.get("workspace_layouts", {})
@@ -349,9 +407,15 @@ class WindowManager:
             layouts[new_clean] = layouts.pop(old_clean)
             self.config.set("workspace_layouts", layouts)
 
+        hotkeys = dict(self.config.get("workspace_hotkeys", {}) or {})
+        if old_clean in hotkeys:
+            hotkeys[new_clean] = hotkeys.pop(old_clean)
+            self.config.set("workspace_hotkeys", hotkeys)
+
         if self.active_workspace() == old_clean:
             self.config.set("active_workspace", new_clean)
         self.config.save()
+        self._notify_workspace_change()
         return True
 
     def workspace_box_count(self, name: str) -> int:
@@ -375,9 +439,15 @@ class WindowManager:
             del layouts[clean_name]
             self.config.set("workspace_layouts", layouts)
 
+        hotkeys = dict(self.config.get("workspace_hotkeys", {}) or {})
+        if clean_name in hotkeys:
+            del hotkeys[clean_name]
+            self.config.set("workspace_hotkeys", hotkeys)
+
         if self.active_workspace() == clean_name:
             self.config.set("active_workspace", "")
         self.config.save()
+        self._notify_workspace_change()
         return True
 
     def quit(self) -> None:
