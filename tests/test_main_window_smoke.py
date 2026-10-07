@@ -25,6 +25,8 @@ def test_main_window_builds_product_chrome(tmp_path) -> None:
     assert window.theme_mode == "light"
     assert window.accent_color == "#3b82f6"
     assert window.icon_size == 40
+    assert window.edge_peek_enabled is False
+    assert window.edge_peek_action.isCheckable()
 
     window._apply_locked(True)
     window._sync_more_menu()
@@ -43,7 +45,17 @@ def test_main_window_builds_product_chrome(tmp_path) -> None:
     window.adjust_icon_size(-1)
     assert window.icon_size == 48
     window._apply_icon_size(56)
+    window.setGeometry(0, 100, 420, 520)
+    window._apply_edge_peek(True)
+    expanded_geometry = window.geometry()
+    window._collapse_edge_peek()
+    assert window._edge_peek_collapsed
     state = window.snapshot_state()
+    assert state["x"] == expanded_geometry.x()
+    assert state["y"] == expanded_geometry.y()
+    assert state["edge_peek_enabled"] is True
+    window.ensure_edge_peek_expanded()
+    assert window.geometry() == expanded_geometry
 
     assert state["theme_mode"] == "dark"
     assert state["accent_color"] == "#8b5cf6"
