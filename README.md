@@ -62,6 +62,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 - Manage Workspaces from a dedicated visual manager while keeping tray-based quick switching.
 - Assign an optional automatic layout policy to each Workspace so switching can reflow Boxes into grid, column, row, or cascade arrangements.
+- Assign `Ctrl+Alt+1` through `Ctrl+Alt+9` global shortcuts to saved Workspaces for instant switching from any application.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
@@ -156,6 +157,7 @@ D:/Work/Paper
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
 - 提供独立 Workspace 管理窗口，同时保留托盘快速切换。
 - 可为每个 Workspace 设置独立自动布局策略，切换时自动按网格、横向分栏、纵向分栏或瀑布模式重新整理 Box。
+- 可为已保存 Workspace 分配 `Ctrl+Alt+1` 到 `Ctrl+Alt+9` 的 Windows 全局快捷键，从其他应用中也能直接切换。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
@@ -191,3 +193,8 @@ FolderBox 的设计目标是轻量、安静、稳定，适合长期停留在桌�
 - QFileSystemModel
 - send2trash
 - PyInstaller
+
+
+> Workspace global hotkeys use Win32 `RegisterHotKey`. If a selected shortcut is already reserved by Windows or another application, that slot cannot become active until the conflict is removed.
+
+> Workspace 全局快捷键使用 Win32 `RegisterHotKey`。如果所选组合键已被 Windows 或其他程序占用，该槽位需要在冲突解除后才能正常注册。
