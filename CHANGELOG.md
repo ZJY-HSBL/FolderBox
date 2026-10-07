@@ -12,11 +12,13 @@ All notable changes to FolderBox are documented here.
 - Added a visual Workspace manager for switching, saving, renaming, and deleting layouts.
 - Added optional Windows Explorer context-menu integration for opening folders in FolderBox.
 - Added single-instance local IPC so Explorer launches are routed to the running FolderBox process.
+- Added explicit Explorer-compatible drag-out for files and folders.
 
 ### Changed
 
 - Consolidated Workspace management into one dedicated dialog while keeping quick switching in the tray.
 - External folder requests reuse an empty Box when possible and otherwise open a managed Box that inherits appearance settings.
+- FolderBox drop targets now explicitly negotiate Copy semantics instead of reporting an unhandled Move action.
 
 ## [1.1.0] - 2026-10-07
 
