@@ -3,6 +3,11 @@ from __future__ import annotations
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QMessageBox, QSystemTrayIcon
 
+from folderbox.shell_integration import (
+    ShellIntegrationError,
+    is_shell_integration_enabled,
+    set_shell_integration_enabled,
+)
 from folderbox.startup import StartupError, is_startup_enabled, set_startup_enabled
 from folderbox.ui.workspace_dialog import WorkspaceDialog
 from folderbox.window_manager import WindowManager
@@ -22,6 +27,8 @@ class TrayController:
         self.manage_workspaces_action = QAction("管理工作区…", self.menu)
         self.startup_action = QAction("开机启动", self.menu)
         self.startup_action.setCheckable(True)
+        self.shell_action = QAction("资源管理器右键菜单", self.menu)
+        self.shell_action.setCheckable(True)
         self.quit_action = QAction("退出 FolderBox", self.menu)
 
         self.menu.insertAction(self.workspace_menu.menuAction(), self.toggle_action)
@@ -29,6 +36,7 @@ class TrayController:
         self.menu.insertSeparator(self.workspace_menu.menuAction())
         self.menu.addSeparator()
         self.menu.addAction(self.startup_action)
+        self.menu.addAction(self.shell_action)
         self.menu.addAction(self.quit_action)
 
         self.toggle_action.triggered.connect(self.manager.toggle_all)
@@ -36,6 +44,7 @@ class TrayController:
         self.save_workspace_action.triggered.connect(self.save_workspace)
         self.manage_workspaces_action.triggered.connect(self.manage_workspaces)
         self.startup_action.triggered.connect(self.set_startup)
+        self.shell_action.triggered.connect(self.set_shell_integration)
         self.quit_action.triggered.connect(self.manager.quit)
         self.menu.aboutToShow.connect(self.refresh_workspace_menu)
         self.tray.activated.connect(self._on_activated)
@@ -56,6 +65,9 @@ class TrayController:
         self.startup_action.blockSignals(True)
         self.startup_action.setChecked(is_startup_enabled())
         self.startup_action.blockSignals(False)
+        self.shell_action.blockSignals(True)
+        self.shell_action.setChecked(is_shell_integration_enabled())
+        self.shell_action.blockSignals(False)
 
         self.workspace_menu.clear()
         self.workspace_menu.addAction(self.save_workspace_action)
@@ -120,6 +132,15 @@ class TrayController:
             self.startup_action.setChecked(is_startup_enabled())
             self.startup_action.blockSignals(False)
             QMessageBox.warning(None, "开机启动设置失败", str(exc))
+
+    def set_shell_integration(self, enabled: bool) -> None:
+        try:
+            set_shell_integration_enabled(enabled)
+        except ShellIntegrationError as exc:
+            self.shell_action.blockSignals(True)
+            self.shell_action.setChecked(is_shell_integration_enabled())
+            self.shell_action.blockSignals(False)
+            QMessageBox.warning(None, "资源管理器右键菜单设置失败", str(exc))
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
