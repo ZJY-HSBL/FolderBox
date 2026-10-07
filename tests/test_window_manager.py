@@ -213,3 +213,67 @@ def test_workspace_load_applies_saved_layout_policy(tmp_path) -> None:
     assert manager.load_workspace("Research")
     assert created == [{"folder": "", "x": 200, "y": 200, "width": 420, "height": 520, "always_on_top": False, "background_opacity": 0.72, "view_mode": "icons", "box_title": "", "locked": False, "theme_mode": "light", "accent_color": "#3b82f6", "icon_size": 40, "edge_peek_enabled": False}]
     assert arranged == ["cascade"]
+
+
+
+def test_workspace_hotkey_slot_can_be_set_and_cleared(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+
+    assert manager.set_workspace_hotkey_slot("Research", 1)
+    assert manager.workspace_hotkey_slot("Research") == 1
+    assert manager.workspace_hotkey_bindings() == {1: "Research"}
+
+    assert manager.set_workspace_hotkey_slot("Research", None)
+    assert manager.workspace_hotkey_slot("Research") == 0
+
+
+def test_workspace_hotkey_slots_are_unique(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "A"})]
+    manager.save_workspace("One")
+    manager.windows = [FakeWindow({"folder": "B"})]
+    manager.save_workspace("Two")
+
+    assert manager.set_workspace_hotkey_slot("One", 2)
+    assert not manager.set_workspace_hotkey_slot("Two", 2)
+    assert manager.workspace_hotkey_bindings() == {2: "One"}
+
+
+def test_workspace_rename_moves_hotkey_binding(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.set_workspace_hotkey_slot("Research", 3)
+
+    assert manager.rename_workspace("Research", "Papers")
+    assert manager.workspace_hotkey_slot("Research") == 0
+    assert manager.workspace_hotkey_slot("Papers") == 3
+
+
+def test_workspace_delete_removes_hotkey_binding(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.set_workspace_hotkey_slot("Research", 4)
+
+    assert manager.delete_workspace("Research")
+    assert config.get("workspace_hotkeys") == {}
+
+
+def test_workspace_hotkey_loads_bound_workspace(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    config.set("workspaces", {"Research": [{}]})
+    config.set("workspace_hotkeys", {"Research": 5})
+
+    loaded: list[str] = []
+    manager.load_workspace = lambda name: loaded.append(name) or True
+
+    assert manager.load_workspace_by_hotkey(5)
+    assert loaded == ["Research"]
