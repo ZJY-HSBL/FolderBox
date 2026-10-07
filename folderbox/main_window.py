@@ -121,8 +121,6 @@ class MainWindow(QMainWindow):
         self.instance_offset = instance_offset
         self.file_model = FolderFileModel()
         self.current_folder = ""
-        self.copied_paths: list[str] = []
-        self.clipboard_action = "copy"
         self._history: list[str] = []
         self._history_index = -1
         self.thread_pool = QThreadPool.globalInstance()
@@ -653,8 +651,6 @@ class MainWindow(QMainWindow):
         self.update_folder_state("\u5df2\u5237\u65b0")
 
     def _set_clipboard_paths(self, paths: list[str], action: str) -> None:
-        self.copied_paths = list(paths)
-        self.clipboard_action = action
         mime_data = QMimeData()
         mime_data.setUrls([QUrl.fromLocalFile(path) for path in paths])
         mime_data.setData(FOLDERBOX_CLIPBOARD_ACTION, action.encode("ascii"))
@@ -782,8 +778,6 @@ class MainWindow(QMainWindow):
             if failed_paths:
                 self._set_clipboard_paths(failed_paths, "move")
             else:
-                self.copied_paths = []
-                self.clipboard_action = "copy"
                 QApplication.clipboard().clear()
 
         if failures:
