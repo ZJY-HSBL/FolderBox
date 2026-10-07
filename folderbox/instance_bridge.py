@@ -58,7 +58,6 @@ class InstanceBridge(QObject):
 
     def _drop_socket(self, socket: QLocalSocket) -> None:
         self._buffers.pop(socket, None)
-        socket.deleteLater()
 
 
 def notify_existing_instance(folder: str = "", timeout_ms: int = 300) -> bool:
@@ -72,7 +71,11 @@ def notify_existing_instance(folder: str = "", timeout_ms: int = 300) -> bool:
     if socket.write(payload) < 0:
         socket.abort()
         return False
+
     socket.flush()
-    delivered = socket.waitForBytesWritten(timeout_ms)
+    if socket.bytesToWrite() > 0 and not socket.waitForBytesWritten(timeout_ms):
+        socket.abort()
+        return False
+
     socket.disconnectFromServer()
-    return delivered
+    return True
