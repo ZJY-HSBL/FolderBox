@@ -16,8 +16,13 @@ def build_stylesheet(background_opacity: float) -> str:
         border: 1px solid rgba(122, 132, 145, {border_alpha});
         border-radius: 10px;
     }}
-    QWidget#titleBar {{ background: transparent; }}
-    QLabel#titleLabel {{ font-weight: 700; color: #111827; }}
+    QWidget#titleBar, QWidget#navigationBar {{ background: transparent; }}
+    QLabel#titleLabel {{
+        font-weight: 700;
+        font-size: 13px;
+        color: #111827;
+        padding-left: 2px;
+    }}
     QLabel#statusLabel, QLabel#emptyLabel, QLabel {{ color: #1f2937; }}
     QLabel#emptyLabel {{ font-size: 14px; }}
     QListView, QTreeView {{
@@ -61,16 +66,19 @@ def build_stylesheet(background_opacity: float) -> str:
         background: rgba(96, 165, 250, 170);
         border-color: rgba(37, 99, 235, 180);
     }}
-    QSlider::groove:horizontal {{
-        height: 4px;
-        background: rgba(31, 41, 55, 100);
-        border-radius: 2px;
+    QToolButton#windowControl {{
+        min-width: 26px;
+        min-height: 24px;
+        padding: 1px 3px;
+        border: 0;
+        background: transparent;
     }}
-    QSlider::handle:horizontal {{
-        width: 12px;
-        margin: -5px 0;
-        border-radius: 6px;
-        background: rgba(17, 24, 39, 230);
+    QToolButton#windowControl:hover {{
+        background: rgba(255, 255, 255, {button_hover_alpha});
+    }}
+    QToolButton#windowControl::menu-indicator {{
+        image: none;
+        width: 0;
     }}
     QMenu {{
         background: rgba(255, 255, 255, 245);
