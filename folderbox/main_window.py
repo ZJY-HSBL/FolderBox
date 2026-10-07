@@ -18,6 +18,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QCloseEvent,
+    QColor,
     QKeyEvent,
     QKeySequence,
     QMouseEvent,
@@ -26,6 +27,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QColorDialog,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -61,7 +63,12 @@ from folderbox.file_ops import (
 from folderbox.tasks import FunctionTask
 from folderbox.ui.breadcrumb import BreadcrumbBar
 from folderbox.ui.folder_views import DesktopListView, DesktopTreeView, DropLabel
-from folderbox.ui.theme import build_stylesheet
+from folderbox.ui.theme import (
+    DEFAULT_ACCENT_COLOR,
+    build_stylesheet,
+    normalize_accent_color,
+    normalize_theme_mode,
+)
 from folderbox.utils import format_exception, path_exists
 
 
@@ -140,6 +147,13 @@ class MainWindow(QMainWindow):
         self.box_title = str(self.initial_state.get("box_title", "") or "").strip()
         self.locked = bool(self.initial_state.get("locked", False))
         self.always_on_top = bool(self.initial_state.get("always_on_top", False))
+        self.theme_mode = normalize_theme_mode(
+            str(self.initial_state.get("theme_mode", "light") or "light")
+        )
+        self.accent_color = normalize_accent_color(
+            str(self.initial_state.get("accent_color", DEFAULT_ACCENT_COLOR) or DEFAULT_ACCENT_COLOR)
+        )
+        self.icon_size = self._initial_icon_size()
 
         self.setWindowTitle("FolderBox")
         self.setMinimumSize(320, 340)
@@ -266,8 +280,8 @@ class MainWindow(QMainWindow):
         self.list_view.setWrapping(True)
         self.list_view.setWordWrap(True)
         self.list_view.setTextElideMode(Qt.TextElideMode.ElideMiddle)
-        self.list_view.setIconSize(QSize(40, 40))
-        self.list_view.setGridSize(QSize(104, 92))
+        self.list_view.setIconSize(QSize(self.icon_size, self.icon_size))
+        self.list_view.setGridSize(self._icon_grid_size())
         self.list_view.setSpacing(8)
         self.list_view.setSelectionRectVisible(True)
 
@@ -372,13 +386,29 @@ class MainWindow(QMainWindow):
         value = str(self.initial_state.get("view_mode", "icons") or "icons")
         return value if value in {"icons", "details"} else "icons"
 
+    def _initial_icon_size(self) -> int:
+        try:
+            value = int(self.initial_state.get("icon_size", 40) or 40)
+        except (TypeError, ValueError):
+            value = 40
+        return min((32, 40, 48, 56), key=lambda size: abs(size - value))
+
+    def _icon_grid_size(self) -> QSize:
+        return QSize(self.icon_size * 2 + 24, self.icon_size + 52)
+
     def _apply_background_opacity(self, value: int) -> None:
         self.background_opacity = max(0.2, min(1.0, value / 100))
         if hasattr(self, "shell"):
             self._refresh_style_sheet()
 
     def _refresh_style_sheet(self) -> None:
-        self.setStyleSheet(build_stylesheet(self.background_opacity))
+        self.setStyleSheet(
+            build_stylesheet(
+                self.background_opacity,
+                self.accent_color,
+                self.theme_mode,
+            )
+        )
 
     def _apply_always_on_top(self, enabled: bool, initial: bool = False) -> None:
         self.always_on_top = enabled
@@ -420,7 +450,48 @@ class MainWindow(QMainWindow):
 
         self.more_menu.addSeparator()
         self.view_action = self.more_menu.addAction(TEXT["switch_to_details"])
-        opacity_menu = self.more_menu.addMenu("背景透明度")
+        appearance_menu = self.more_menu.addMenu("外观")
+
+        theme_menu = appearance_menu.addMenu("主题")
+        self.theme_actions = {}
+        for mode, label in (("light", "浅色"), ("dark", "深色")):
+            action = theme_menu.addAction(label)
+            action.setCheckable(True)
+            action.triggered.connect(
+                lambda checked=False, value=mode: self._apply_theme_mode(value)
+            )
+            self.theme_actions[mode] = action
+
+        accent_menu = appearance_menu.addMenu("强调色")
+        self.accent_actions = {}
+        for label, color in (
+            ("蓝色", "#3b82f6"),
+            ("紫色", "#8b5cf6"),
+            ("青色", "#06b6d4"),
+            ("绿色", "#22c55e"),
+            ("橙色", "#f97316"),
+            ("红色", "#ef4444"),
+        ):
+            action = accent_menu.addAction(label)
+            action.setCheckable(True)
+            action.triggered.connect(
+                lambda checked=False, value=color: self._apply_accent_color(value)
+            )
+            self.accent_actions[color] = action
+        accent_menu.addSeparator()
+        custom_accent_action = accent_menu.addAction("自定义…")
+
+        icon_size_menu = appearance_menu.addMenu("图标大小")
+        self.icon_size_actions = {}
+        for size, label in ((32, "小"), (40, "中"), (48, "大"), (56, "超大")):
+            action = icon_size_menu.addAction(f"{label} · {size}px")
+            action.setCheckable(True)
+            action.triggered.connect(
+                lambda checked=False, value=size: self._apply_icon_size(value)
+            )
+            self.icon_size_actions[size] = action
+
+        opacity_menu = appearance_menu.addMenu("背景透明度")
         for percent in (40, 60, 80, 100):
             action = opacity_menu.addAction(f"{percent}%")
             action.triggered.connect(
@@ -439,6 +510,7 @@ class MainWindow(QMainWindow):
         self.pin_action.toggled.connect(self._apply_always_on_top)
         self.lock_action.toggled.connect(self._apply_locked)
         self.view_action.triggered.connect(self.toggle_view_mode)
+        custom_accent_action.triggered.connect(self.choose_accent_color)
         custom_opacity_action.triggered.connect(self.choose_background_opacity)
         self.open_folder_action.triggered.connect(self.open_current_folder_in_explorer)
         choose_folder_action.triggered.connect(self.choose_folder)
@@ -453,7 +525,48 @@ class MainWindow(QMainWindow):
         self.lock_action.blockSignals(False)
 
         self.open_folder_action.setEnabled(bool(self.current_folder))
+        for mode, action in self.theme_actions.items():
+            action.setChecked(mode == self.theme_mode)
+        for color, action in self.accent_actions.items():
+            action.setChecked(color == self.accent_color)
+        for size, action in self.icon_size_actions.items():
+            action.setChecked(size == self.icon_size)
         self._update_view_button_text()
+
+    def _save_window_state(self) -> None:
+        if self.manager and hasattr(self.manager, "save_window_states"):
+            self.manager.save_window_states()
+
+    def _apply_theme_mode(self, mode: str, initial: bool = False) -> None:
+        self.theme_mode = normalize_theme_mode(mode)
+        if hasattr(self, "shell"):
+            self._refresh_style_sheet()
+        if not initial:
+            self._save_window_state()
+
+    def _apply_accent_color(self, color: str, initial: bool = False) -> None:
+        self.accent_color = normalize_accent_color(color)
+        if hasattr(self, "shell"):
+            self._refresh_style_sheet()
+        if not initial:
+            self._save_window_state()
+
+    def choose_accent_color(self) -> None:
+        color = QColorDialog.getColor(
+            QColor(self.accent_color),
+            self,
+            "选择强调色",
+        )
+        if color.isValid():
+            self._apply_accent_color(color.name())
+
+    def _apply_icon_size(self, value: int, initial: bool = False) -> None:
+        self.icon_size = min((32, 40, 48, 56), key=lambda size: abs(size - int(value)))
+        if hasattr(self, "list_view"):
+            self.list_view.setIconSize(QSize(self.icon_size, self.icon_size))
+            self.list_view.setGridSize(self._icon_grid_size())
+        if not initial:
+            self._save_window_state()
 
     def choose_background_opacity(self) -> None:
         value, ok = QInputDialog.getInt(
@@ -1145,6 +1258,9 @@ class MainWindow(QMainWindow):
             "view_mode": self.view_mode,
             "box_title": self.box_title,
             "locked": self.locked,
+            "theme_mode": self.theme_mode,
+            "accent_color": self.accent_color,
+            "icon_size": self.icon_size,
         }
 
     def _on_directory_loaded(self, loaded_path: str) -> None:
