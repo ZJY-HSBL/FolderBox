@@ -42,7 +42,10 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Show file name, size, type, and modified time in detail view.
 - Open files with the system default application.
 - Enter subfolders inside the same FolderBox window.
-- Copy, paste, rename, refresh, and delete files or folders.
+- Copy, cut, paste, move, rename, refresh, and delete files or folders.
+- Create folders directly inside the current FolderBox.
+- Run copy, move, and recycle-bin operations in background tasks so the UI stays responsive.
+- Navigate with Back, Forward, and Up history controls.
 - Move deleted items to the recycle bin instead of permanently deleting them.
 - Drag files or folders from Windows Explorer into FolderBox.
 - Keep file icons and text clear while only the background is transparent.
@@ -100,7 +103,10 @@ D:/Work/Paper
 - 详细信息视图可显示文件名、大小、类型和修改时间。
 - 使用系统默认程序打开文件。
 - 双击文件夹可在当前窗口中进入子文件夹。
-- 支持复制、粘贴、重命名、刷新、删除文件或文件夹。
+- 支持复制、剪切、粘贴、移动、重命名、刷新、删除文件或文件夹。
+- 支持直接在当前 FolderBox 中新建文件夹。
+- 复制、移动和移入回收站等文件操作使用后台任务执行，减少界面卡顿。
+- 支持后退、前进和返回上一级的目录导航。
 - 删除操作优先移入回收站，而不是永久删除。
 - 支持从 Windows 资源管理器拖入文件或文件夹。
 - 背景可透明，但文件图标和文字保持清晰不透明。
