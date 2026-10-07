@@ -32,6 +32,7 @@ def test_saved_config_is_valid_json(tmp_path) -> None:
     assert json.loads(config_path.read_text(encoding="utf-8")) == {
         "windows": [],
         "workspaces": {},
+        "workspace_layouts": {},
         "active_workspace": "",
         "snap_enabled": True,
     }
@@ -57,3 +58,15 @@ def test_workspace_state_round_trip(tmp_path) -> None:
 
     assert reloaded.get("workspaces") == workspace
     assert reloaded.get("active_workspace") == "Research"
+
+
+
+def test_workspace_layout_policy_round_trip(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    manager = ConfigManager(config_path)
+    manager.set("workspace_layouts", {"Research": "grid"})
+    manager.save()
+
+    reloaded = ConfigManager(config_path)
+
+    assert reloaded.get("workspace_layouts") == {"Research": "grid"}
