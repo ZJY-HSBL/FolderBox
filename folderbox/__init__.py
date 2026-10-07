@@ -1,4 +1,4 @@
 """FolderBox desktop folder visualization tool."""
 
 __app_name__ = "FolderBox"
-__version__ = "1.6.0"
+__version__ = "1.7.0"
