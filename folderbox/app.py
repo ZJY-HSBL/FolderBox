@@ -68,7 +68,7 @@ def run_app(argv: list[str]) -> int:
     hotkey: GlobalHotkeyController | None = None
     hotkey_active = False
     if is_windows():
-        hotkey = GlobalHotkeyController(app, manager.toggle_all)
+        hotkey = GlobalHotkeyController(app, manager)
         hotkey_active = hotkey.register()
 
     tray: TrayController | None = None

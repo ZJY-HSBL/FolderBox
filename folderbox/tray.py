@@ -121,7 +121,9 @@ class TrayController:
             return
 
         for name in names:
-            action = self.workspace_menu.addAction(name)
+            hotkey_slot = self.manager.workspace_hotkey_slot(name)
+            label = f"{name}    Ctrl+Alt+{hotkey_slot}" if hotkey_slot else name
+            action = self.workspace_menu.addAction(label)
             action.setCheckable(True)
             action.setChecked(name == active)
             action.triggered.connect(lambda checked=False, value=name: self.load_workspace(value))

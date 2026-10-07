@@ -56,6 +56,18 @@ class WorkspaceDialog(QDialog):
         policy_row.addWidget(self.save_policy_button)
         layout.addLayout(policy_row)
 
+        hotkey_row = QHBoxLayout()
+        hotkey_label = QLabel("选中 Workspace 全局快捷键：")
+        self.hotkey_combo = QComboBox(self)
+        self.hotkey_combo.addItem("无", 0)
+        for slot in range(1, 10):
+            self.hotkey_combo.addItem(f"Ctrl+Alt+{slot}", slot)
+        self.save_hotkey_button = QPushButton("保存快捷键")
+        hotkey_row.addWidget(hotkey_label)
+        hotkey_row.addWidget(self.hotkey_combo, 1)
+        hotkey_row.addWidget(self.save_hotkey_button)
+        layout.addLayout(hotkey_row)
+
         arrange_row = QHBoxLayout()
         arrange_label = QLabel("当前桌面排列：")
         self.arrange_combo = QComboBox(self)
@@ -89,6 +101,7 @@ class WorkspaceDialog(QDialog):
         layout.addLayout(secondary_row)
 
         self.save_policy_button.clicked.connect(self.save_layout_policy)
+        self.save_hotkey_button.clicked.connect(self.save_workspace_hotkey)
         self.arrange_button.clicked.connect(self.arrange_current)
         self.load_button.clicked.connect(self.load_selected)
         self.update_button.clicked.connect(self.update_active)
@@ -111,6 +124,9 @@ class WorkspaceDialog(QDialog):
             layout_mode = self.manager.workspace_layout_mode(name)
             if layout_mode:
                 suffix += f" · 自动：{LAYOUT_LABELS[layout_mode]}"
+            hotkey_slot = self.manager.workspace_hotkey_slot(name)
+            if hotkey_slot:
+                suffix += f" · Ctrl+Alt+{hotkey_slot}"
             item = QListWidgetItem(f"{name}  ·  {count} 个 Box{suffix}")
             item.setData(Qt.ItemDataRole.UserRole, name)
             self.list_widget.addItem(item)
@@ -133,11 +149,17 @@ class WorkspaceDialog(QDialog):
         self.delete_button.setEnabled(has_selection)
         self.layout_policy_combo.setEnabled(has_selection)
         self.save_policy_button.setEnabled(has_selection)
+        self.hotkey_combo.setEnabled(has_selection)
+        self.save_hotkey_button.setEnabled(has_selection)
         self.update_button.setEnabled(bool(self.manager.active_workspace()))
 
         mode = self.manager.workspace_layout_mode(selected) if has_selection else ""
         index = self.layout_policy_combo.findData(mode)
         self.layout_policy_combo.setCurrentIndex(max(0, index))
+
+        hotkey_slot = self.manager.workspace_hotkey_slot(selected) if has_selection else 0
+        hotkey_index = self.hotkey_combo.findData(hotkey_slot)
+        self.hotkey_combo.setCurrentIndex(max(0, hotkey_index))
 
     def save_layout_policy(self) -> None:
         name = self.selected_name()
@@ -146,6 +168,20 @@ class WorkspaceDialog(QDialog):
         mode = str(self.layout_policy_combo.currentData() or "")
         if not self.manager.set_workspace_layout_mode(name, mode or None):
             QMessageBox.warning(self, "保存失败", "无法保存该 Workspace 的默认布局策略。")
+            return
+        self.refresh()
+
+    def save_workspace_hotkey(self) -> None:
+        name = self.selected_name()
+        if not name:
+            return
+        slot = int(self.hotkey_combo.currentData() or 0)
+        if not self.manager.set_workspace_hotkey_slot(name, slot or None):
+            QMessageBox.warning(
+                self,
+                "保存失败",
+                "快捷键槽位无效，或已被其他 Workspace 使用。",
+            )
             return
         self.refresh()
 

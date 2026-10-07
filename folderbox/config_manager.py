@@ -28,6 +28,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "windows": [],
     "workspaces": {},
     "workspace_layouts": {},
+    "workspace_hotkeys": {},
     "active_workspace": "",
     "snap_enabled": True,
 }
@@ -54,6 +55,7 @@ class ConfigManager:
             windows = loaded.get("windows", [])
             workspaces = loaded.get("workspaces", {})
             workspace_layouts = loaded.get("workspace_layouts", {})
+            workspace_hotkeys = loaded.get("workspace_hotkeys", {})
             active_workspace = loaded.get("active_workspace", "")
             snap_enabled = loaded.get("snap_enabled", True)
             if not isinstance(windows, list):
@@ -62,6 +64,8 @@ class ConfigManager:
                 raise ValueError("workspaces must be an object")
             if not isinstance(workspace_layouts, dict):
                 raise ValueError("workspace_layouts must be an object")
+            if not isinstance(workspace_hotkeys, dict):
+                raise ValueError("workspace_hotkeys must be an object")
             if not isinstance(active_workspace, str):
                 raise ValueError("active_workspace must be a string")
             if not isinstance(snap_enabled, bool):
@@ -70,6 +74,7 @@ class ConfigManager:
                 "windows": windows,
                 "workspaces": workspaces,
                 "workspace_layouts": workspace_layouts,
+                "workspace_hotkeys": workspace_hotkeys,
                 "active_workspace": active_workspace,
                 "snap_enabled": snap_enabled,
             }

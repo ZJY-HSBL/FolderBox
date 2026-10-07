@@ -84,3 +84,25 @@ def test_workspace_dialog_edits_default_layout_policy(tmp_path) -> None:
 
     dialog.close()
     app.processEvents()
+
+
+
+def test_workspace_dialog_assigns_global_hotkey_slot(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(app, config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+
+    dialog = WorkspaceDialog(manager)
+
+    assert dialog.hotkey_combo.count() == 10
+    slot_index = dialog.hotkey_combo.findData(2)
+    dialog.hotkey_combo.setCurrentIndex(slot_index)
+    dialog.save_workspace_hotkey()
+
+    assert manager.workspace_hotkey_slot("Research") == 2
+    assert "Ctrl+Alt+2" in dialog.list_widget.item(0).text()
+
+    dialog.close()
+    app.processEvents()
