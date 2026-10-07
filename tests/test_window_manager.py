@@ -59,3 +59,16 @@ def test_delete_workspace_does_not_delete_window_state(tmp_path) -> None:
     assert manager.delete_workspace("Research")
     assert manager.workspace_names() == []
     assert config.get("windows") == [{"folder": "D:/Research"}]
+
+
+
+def test_save_workspace_rejects_empty_layout(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+
+    try:
+        manager.save_workspace("Empty")
+    except ValueError as exc:
+        assert "at least one Box" in str(exc)
+    else:
+        raise AssertionError("Expected empty workspace save to fail")
