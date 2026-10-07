@@ -58,6 +58,7 @@ from folderbox.file_ops import (
 )
 from folderbox.tasks import FunctionTask
 from folderbox.ui.folder_views import DesktopListView, DesktopTreeView, DropLabel
+from folderbox.ui.theme import build_stylesheet
 from folderbox.utils import format_exception, path_exists, shorten_path
 
 
@@ -345,77 +346,7 @@ class MainWindow(QMainWindow):
             self._refresh_style_sheet()
 
     def _refresh_style_sheet(self) -> None:
-        shell_alpha = int(255 * self.background_opacity)
-        list_alpha = int(145 * self.background_opacity)
-        hover_alpha = int(130 * self.background_opacity)
-        button_alpha = int(180 * self.background_opacity)
-        button_hover_alpha = int(225 * self.background_opacity)
-        border_alpha = max(90, int(190 * self.background_opacity))
-        self.setStyleSheet(
-            f"""
-            QMainWindow {{ background: transparent; }}
-            QFrame#shell {{
-                background: rgba(244, 247, 250, {shell_alpha});
-                border: 1px solid rgba(122, 132, 145, {border_alpha});
-                border-radius: 10px;
-            }}
-            QWidget#titleBar {{ background: transparent; }}
-            QLabel#titleLabel {{ font-weight: 700; color: #111827; }}
-            QLabel#statusLabel, QLabel#emptyLabel, QLabel {{ color: #1f2937; }}
-            QLabel#emptyLabel {{ font-size: 14px; }}
-            QListView, QTreeView {{
-                background: rgba(255, 255, 255, {list_alpha});
-                border: 1px solid rgba(130, 143, 158, {border_alpha});
-                border-radius: 8px;
-                padding: 8px;
-                outline: none;
-            }}
-            QListView::item, QTreeView::item {{
-                color: #111827;
-                padding: 6px;
-                border-radius: 7px;
-            }}
-            QListView::item:hover, QTreeView::item:hover {{ background: rgba(255, 255, 255, {hover_alpha}); }}
-            QListView::item:selected, QTreeView::item:selected {{
-                background: rgba(59, 130, 246, 130);
-                color: #0f172a;
-            }}
-            QHeaderView::section {{
-                background: rgba(255, 255, 255, {button_alpha});
-                color: #111827;
-                border: 0;
-                border-right: 1px solid rgba(130, 143, 158, {border_alpha});
-                padding: 5px 7px;
-            }}
-            QPushButton, QToolButton {{
-                min-height: 24px;
-                padding: 3px 8px;
-                border: 1px solid rgba(107, 114, 128, {border_alpha});
-                border-radius: 6px;
-                background: rgba(255, 255, 255, {button_alpha});
-                color: #111827;
-            }}
-            QPushButton:hover, QToolButton:hover {{ background: rgba(255, 255, 255, {button_hover_alpha}); }}
-            QToolButton:checked {{ background: rgba(96, 165, 250, 170); border-color: rgba(37, 99, 235, 180); }}
-            QSlider::groove:horizontal {{
-                height: 4px;
-                background: rgba(31, 41, 55, 100);
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                width: 12px;
-                margin: -5px 0;
-                border-radius: 6px;
-                background: rgba(17, 24, 39, 230);
-            }}
-            QMenu {{
-                background: rgba(255, 255, 255, 245);
-                border: 1px solid rgba(148, 163, 184, 190);
-            }}
-            QMenu::item {{ padding: 5px 24px 5px 18px; color: #111827; }}
-            QMenu::item:selected {{ background: rgba(219, 234, 254, 240); }}
-            """
-        )
+        self.setStyleSheet(build_stylesheet(self.background_opacity))
 
     def _apply_always_on_top(self, enabled: bool, initial: bool = False) -> None:
         if hasattr(self, "pin_button"):
