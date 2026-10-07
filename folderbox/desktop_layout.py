@@ -89,10 +89,13 @@ def layout_rectangles(
     count: int,
     screen: QRect,
     gap: int = 8,
-    cascade_size: QSize = QSize(420, 520),
+    cascade_size: QSize | None = None,
 ) -> list[QRect]:
     if count <= 0:
         return []
+
+    if cascade_size is None:
+        cascade_size = QSize(420, 520)
 
     max_columns = max(1, (screen.width() - gap) // (320 + gap))
     max_rows = max(1, (screen.height() - gap) // (340 + gap))
