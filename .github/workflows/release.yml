@@ -32,7 +32,19 @@ jobs:
 
       - name: Build application
         shell: pwsh
-        run: python -m PyInstaller --noconfirm --clean --windowed --name FolderBox --icon assets/app.ico --add-data "assets;assets" folderbox/__main__.py
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed `
+            --name FolderBox `
+            --icon assets/app.ico `
+            --add-data "assets;assets" `
+            folderbox/__main__.py
+
+      - name: Verify application bundle
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\FolderBox\FolderBox.exe")) {
+            throw "FolderBox.exe was not generated."
+          }
 
       - name: Install Inno Setup
         shell: pwsh
@@ -46,6 +58,10 @@ jobs:
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "packaging\FolderBox.iss"
           Compress-Archive -Path "dist\FolderBox\*" -DestinationPath "release\FolderBox-Portable-$version.zip" -Force
           $files = Get-ChildItem release -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" }
+          if ($files.Count -lt 2) {
+            throw "Expected installer and portable archive were not generated."
+          }
+
           $lines = foreach ($file in $files) {
             $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
             "$hash  $($file.Name)"
