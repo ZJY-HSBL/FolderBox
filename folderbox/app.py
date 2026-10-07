@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QApplication
 
 from folderbox import __app_name__
 from folderbox.config_manager import ConfigManager
+from folderbox.instance_bridge import InstanceBridge, notify_existing_instance
+from folderbox.launch import requested_folder
 from folderbox.tray import TrayController
 from folderbox.window_manager import WindowManager
 
@@ -45,8 +47,19 @@ def create_app(argv: list[str]) -> tuple[QApplication, ConfigManager]:
 
 def run_app(argv: list[str]) -> int:
     app, config = create_app(argv)
+    folder = requested_folder(argv)
+
+    if notify_existing_instance(folder):
+        return 0
+
     manager = WindowManager(app, config)
+    bridge = InstanceBridge(app)
+    bridge.requestReceived.connect(manager.handle_external_request)
+    bridge.listen()
+
     manager.restore_windows()
+    if folder:
+        manager.open_folder_window(folder)
 
     tray: TrayController | None = None
     if TrayController.is_available():
@@ -56,6 +69,7 @@ def run_app(argv: list[str]) -> int:
 
     exit_code = app.exec()
     del tray
+    del bridge
     return exit_code
 
 
