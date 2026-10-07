@@ -122,6 +122,59 @@ def copy_items(source_paths: list[str | Path], destination_folder: str | Path) -
     return copied, failures
 
 
+def move_items(
+    source_paths: list[str | Path],
+    destination_folder: str | Path,
+) -> tuple[list[Path], list[tuple[Path, str]]]:
+    destination = Path(destination_folder)
+    if not destination.exists() or not destination.is_dir():
+        raise FileOperationError("移动目标文件夹不存在。")
+
+    moved: list[Path] = []
+    failures: list[tuple[Path, str]] = []
+
+    for source in source_paths:
+        src = Path(source)
+        try:
+            if not src.exists():
+                raise FileOperationError("源文件或文件夹不存在。")
+
+            if src.is_dir() and _is_relative_to(destination, src):
+                raise FileOperationError("不能把文件夹移动到它自身或子文件夹中。")
+
+            if src.parent.resolve() == destination.resolve():
+                moved.append(src)
+                continue
+
+            target = get_available_copy_path(destination / src.name)
+            moved_path = Path(shutil.move(str(src), str(target)))
+            moved.append(moved_path)
+        except Exception as exc:
+            failures.append((src, format_exception(exc)))
+
+    return moved, failures
+
+
+def create_folder(destination_folder: str | Path, name: str) -> Path:
+    destination = Path(destination_folder)
+    clean_name = name.strip()
+
+    if not destination.exists() or not destination.is_dir():
+        raise FileOperationError("当前文件夹不存在。")
+    if not is_valid_windows_filename(clean_name):
+        raise FileOperationError("文件夹名称无效。")
+
+    target = destination / clean_name
+    if target.exists():
+        raise FileOperationError("同名文件或文件夹已经存在。")
+
+    try:
+        target.mkdir()
+    except OSError as exc:
+        raise FileOperationError(f"新建文件夹失败：{format_exception(exc)}") from exc
+    return target
+
+
 def delete_to_recycle_bin(paths: list[str | Path]) -> list[tuple[Path, str]]:
     failures: list[tuple[Path, str]] = []
     for item in paths:

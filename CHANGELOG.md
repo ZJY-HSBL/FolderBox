@@ -14,6 +14,10 @@ All notable changes to FolderBox are documented here.
 - Replaced the custom Python installer path with PyInstaller + Inno Setup packaging.
 - Added Windows CI with Ruff and pytest.
 - Added tag-driven GitHub Release automation.
+- Added non-blocking background copy, move, and recycle-bin operations.
+- Added cut/paste move semantics across FolderBox windows.
+- Added Back, Forward, and Up navigation history.
+- Added direct folder creation with Ctrl+Shift+N.
 
 ### Removed
 

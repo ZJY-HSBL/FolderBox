@@ -1,13 +1,23 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from PySide6.QtCore import QItemSelectionModel, QMimeData, QModelIndex, QPoint, QRect, QSize, QUrl, Qt
+from PySide6.QtCore import (
+    QItemSelectionModel,
+    QMimeData,
+    QModelIndex,
+    QPoint,
+    QRect,
+    QSize,
+    QThreadPool,
+    QUrl,
+    Qt,
+    Slot,
+)
 from PySide6.QtGui import (
     QCloseEvent,
-    QDragEnterEvent,
-    QDropEvent,
     QKeyEvent,
     QKeySequence,
     QMouseEvent,
@@ -32,7 +42,6 @@ from PySide6.QtWidgets import (
     QSlider,
     QStackedWidget,
     QToolButton,
-    QTreeView,
     QVBoxLayout,
     QWidget,
 )
@@ -42,18 +51,28 @@ from folderbox.file_model import FolderFileModel
 from folderbox.file_ops import (
     FileOperationError,
     copy_items,
+    create_folder,
     delete_to_recycle_bin,
+    move_items,
     open_folder_in_explorer,
     open_with_default_app,
     rename_item,
     show_in_explorer,
 )
+from folderbox.tasks import FunctionTask
+from folderbox.ui.folder_views import DesktopListView, DesktopTreeView, DropLabel
+from folderbox.ui.theme import build_stylesheet
 from folderbox.utils import format_exception, path_exists, shorten_path
+
+
+FOLDERBOX_CLIPBOARD_ACTION = "application/x-folderbox-action"
 
 
 TEXT = {
     "choose": "\u9009\u62e9\u6587\u4ef6\u5939",
-    "back": "\u4e0a\u4e00\u7ea7",
+    "back": "后退",
+    "forward": "前进",
+    "up": "上一级",
     "refresh": "\u5237\u65b0",
     "pin": "\u7f6e\u9876",
     "new_window": "\u65b0\u7a97\u53e3",
@@ -72,7 +91,8 @@ TEXT = {
     "empty": "\u5f53\u524d\u6587\u4ef6\u5939\u4e3a\u7a7a\uff0c\u53ef\u4ee5\u62d6\u5165\u6587\u4ef6",
     "missing": "\u5f53\u524d\u6587\u4ef6\u5939\u4e0d\u5b58\u5728\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9\u6587\u4ef6\u5939",
     "open": "\u6253\u5f00",
-    "copy": "\u590d\u5236",
+    "copy": "复制",
+    "cut": "剪切",
     "paste": "\u7c98\u8d34",
     "rename": "\u91cd\u547d\u540d",
     "delete": "\u5220\u9664",
@@ -80,146 +100,12 @@ TEXT = {
     "open_folder": "\u5728\u8d44\u6e90\u7ba1\u7406\u5668\u4e2d\u6253\u5f00\u5f53\u524d\u6587\u4ef6\u5939",
     "confirm_delete": "\u786e\u8ba4\u5220\u9664",
     "delete_question": "\u786e\u5b9a\u5c06\u9009\u4e2d\u7684 {count} \u4e2a\u9879\u76ee\u79fb\u5165\u56de\u6536\u7ad9\u5417\uff1f",
-    "new_name": "\u65b0\u540d\u79f0\uff1a",
+    "new_name": "新名称：",
+    "new_folder": "新建文件夹",
+    "folder_name": "文件夹名称：",
     "opacity_tip": "\u80cc\u666f\u900f\u660e\u5ea6\uff08\u56fe\u6807\u548c\u6587\u5b57\u4fdd\u6301\u4e0d\u900f\u660e\uff09",
     "drop_copy": "\u5df2\u62d6\u5165\u590d\u5236 {count} \u4e2a\u9879\u76ee",
 }
-
-
-class DesktopListView(QListView):
-    def __init__(self, window: "MainWindow") -> None:
-        super().__init__(window)
-        self.window = window
-        self.setAcceptDrops(True)
-        self.setDragEnabled(True)
-        self.setDropIndicatorShown(True)
-        self.setDefaultDropAction(Qt.DropAction.CopyAction)
-        self.setDragDropMode(QAbstractItemView.DragDrop)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.matches(QKeySequence.StandardKey.Copy):
-            self.window.copy_selected()
-            return
-        if event.matches(QKeySequence.StandardKey.Paste):
-            self.window.paste_to_current_folder()
-            return
-        if event.matches(QKeySequence.StandardKey.SelectAll):
-            self.selectAll()
-            return
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self.window.open_selected()
-            return
-        if event.key() == Qt.Key.Key_F2:
-            self.window.rename_selected()
-            return
-        if event.key() == Qt.Key.Key_Delete:
-            self.window.delete_selected()
-            return
-        if event.key() == Qt.Key.Key_Backspace:
-            self.window.go_to_parent()
-            return
-        if event.key() == Qt.Key.Key_F5:
-            self.window.refresh_current_folder()
-            return
-        super().keyPressEvent(event)
-
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragMoveEvent(event)
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            position = event.position().toPoint()
-            self.window.copy_dropped_files(event.mimeData(), self.indexAt(position))
-            event.acceptProposedAction()
-        else:
-            super().dropEvent(event)
-
-
-class DesktopTreeView(QTreeView):
-    def __init__(self, window: "MainWindow") -> None:
-        super().__init__(window)
-        self.window = window
-        self.setAcceptDrops(True)
-        self.setDragEnabled(True)
-        self.setDropIndicatorShown(True)
-        self.setDefaultDropAction(Qt.DropAction.CopyAction)
-        self.setDragDropMode(QAbstractItemView.DragDrop)
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        if event.matches(QKeySequence.StandardKey.Copy):
-            self.window.copy_selected()
-            return
-        if event.matches(QKeySequence.StandardKey.Paste):
-            self.window.paste_to_current_folder()
-            return
-        if event.matches(QKeySequence.StandardKey.SelectAll):
-            self.selectAll()
-            return
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-            self.window.open_selected()
-            return
-        if event.key() == Qt.Key.Key_F2:
-            self.window.rename_selected()
-            return
-        if event.key() == Qt.Key.Key_Delete:
-            self.window.delete_selected()
-            return
-        if event.key() == Qt.Key.Key_Backspace:
-            self.window.go_to_parent()
-            return
-        if event.key() == Qt.Key.Key_F5:
-            self.window.refresh_current_folder()
-            return
-        super().keyPressEvent(event)
-
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            super().dragMoveEvent(event)
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            position = event.position().toPoint()
-            self.window.copy_dropped_files(event.mimeData(), self.indexAt(position))
-            event.acceptProposedAction()
-        else:
-            super().dropEvent(event)
-
-
-class DropLabel(QLabel):
-    def __init__(self, window: "MainWindow") -> None:
-        super().__init__(window)
-        self.window = window
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            event.acceptProposedAction()
-        else:
-            event.ignore()
-
-    def dropEvent(self, event: QDropEvent) -> None:
-        if self.window.can_accept_file_drop(event.mimeData()):
-            self.window.copy_dropped_files(event.mimeData(), QModelIndex())
-            event.acceptProposedAction()
-        else:
-            event.ignore()
 
 
 class MainWindow(QMainWindow):
@@ -237,7 +123,12 @@ class MainWindow(QMainWindow):
         self.instance_offset = instance_offset
         self.file_model = FolderFileModel()
         self.current_folder = ""
-        self.copied_paths: list[str] = []
+        self._history: list[str] = []
+        self._history_index = -1
+        self.thread_pool = QThreadPool.globalInstance()
+        self._file_task: FunctionTask | None = None
+        self._file_task_action = ""
+        self._file_task_on_finished: Callable[[object], None] | None = None
         self._drag_offset: QPoint | None = None
         self.background_opacity = self._initial_background_opacity()
         self.view_mode = self._initial_view_mode()
@@ -288,7 +179,14 @@ class MainWindow(QMainWindow):
 
         self.choose_button = QPushButton(TEXT["choose"])
         self.back_button = QToolButton()
-        self.back_button.setText(TEXT["back"])
+        self.back_button.setText("←")
+        self.back_button.setToolTip(TEXT["back"])
+        self.forward_button = QToolButton()
+        self.forward_button.setText("→")
+        self.forward_button.setToolTip(TEXT["forward"])
+        self.up_button = QToolButton()
+        self.up_button.setText("↑")
+        self.up_button.setToolTip(TEXT["up"])
         self.refresh_button = QToolButton()
         self.refresh_button.setText(TEXT["refresh"])
         self.pin_button = QToolButton()
@@ -315,6 +213,8 @@ class MainWindow(QMainWindow):
         title_layout.addWidget(self.path_label, 1)
         title_layout.addWidget(self.choose_button)
         title_layout.addWidget(self.back_button)
+        title_layout.addWidget(self.forward_button)
+        title_layout.addWidget(self.up_button)
         title_layout.addWidget(self.refresh_button)
         title_layout.addWidget(self.pin_button)
         title_layout.addWidget(self.new_window_button)
@@ -391,7 +291,9 @@ class MainWindow(QMainWindow):
         self._update_view_button_text()
 
         self.choose_button.clicked.connect(self.choose_folder)
-        self.back_button.clicked.connect(self.go_to_parent)
+        self.back_button.clicked.connect(self.go_back)
+        self.forward_button.clicked.connect(self.go_forward)
+        self.up_button.clicked.connect(self.go_to_parent)
         self.refresh_button.clicked.connect(self.refresh_current_folder)
         self.pin_button.toggled.connect(self._apply_always_on_top)
         self.new_window_button.clicked.connect(self.open_new_window)
@@ -447,77 +349,7 @@ class MainWindow(QMainWindow):
             self._refresh_style_sheet()
 
     def _refresh_style_sheet(self) -> None:
-        shell_alpha = int(255 * self.background_opacity)
-        list_alpha = int(145 * self.background_opacity)
-        hover_alpha = int(130 * self.background_opacity)
-        button_alpha = int(180 * self.background_opacity)
-        button_hover_alpha = int(225 * self.background_opacity)
-        border_alpha = max(90, int(190 * self.background_opacity))
-        self.setStyleSheet(
-            f"""
-            QMainWindow {{ background: transparent; }}
-            QFrame#shell {{
-                background: rgba(244, 247, 250, {shell_alpha});
-                border: 1px solid rgba(122, 132, 145, {border_alpha});
-                border-radius: 10px;
-            }}
-            QWidget#titleBar {{ background: transparent; }}
-            QLabel#titleLabel {{ font-weight: 700; color: #111827; }}
-            QLabel#statusLabel, QLabel#emptyLabel, QLabel {{ color: #1f2937; }}
-            QLabel#emptyLabel {{ font-size: 14px; }}
-            QListView, QTreeView {{
-                background: rgba(255, 255, 255, {list_alpha});
-                border: 1px solid rgba(130, 143, 158, {border_alpha});
-                border-radius: 8px;
-                padding: 8px;
-                outline: none;
-            }}
-            QListView::item, QTreeView::item {{
-                color: #111827;
-                padding: 6px;
-                border-radius: 7px;
-            }}
-            QListView::item:hover, QTreeView::item:hover {{ background: rgba(255, 255, 255, {hover_alpha}); }}
-            QListView::item:selected, QTreeView::item:selected {{
-                background: rgba(59, 130, 246, 130);
-                color: #0f172a;
-            }}
-            QHeaderView::section {{
-                background: rgba(255, 255, 255, {button_alpha});
-                color: #111827;
-                border: 0;
-                border-right: 1px solid rgba(130, 143, 158, {border_alpha});
-                padding: 5px 7px;
-            }}
-            QPushButton, QToolButton {{
-                min-height: 24px;
-                padding: 3px 8px;
-                border: 1px solid rgba(107, 114, 128, {border_alpha});
-                border-radius: 6px;
-                background: rgba(255, 255, 255, {button_alpha});
-                color: #111827;
-            }}
-            QPushButton:hover, QToolButton:hover {{ background: rgba(255, 255, 255, {button_hover_alpha}); }}
-            QToolButton:checked {{ background: rgba(96, 165, 250, 170); border-color: rgba(37, 99, 235, 180); }}
-            QSlider::groove:horizontal {{
-                height: 4px;
-                background: rgba(31, 41, 55, 100);
-                border-radius: 2px;
-            }}
-            QSlider::handle:horizontal {{
-                width: 12px;
-                margin: -5px 0;
-                border-radius: 6px;
-                background: rgba(17, 24, 39, 230);
-            }}
-            QMenu {{
-                background: rgba(255, 255, 255, 245);
-                border: 1px solid rgba(148, 163, 184, 190);
-            }}
-            QMenu::item {{ padding: 5px 24px 5px 18px; color: #111827; }}
-            QMenu::item:selected {{ background: rgba(219, 234, 254, 240); }}
-            """
-        )
+        self.setStyleSheet(build_stylesheet(self.background_opacity))
 
     def _apply_always_on_top(self, enabled: bool, initial: bool = False) -> None:
         if hasattr(self, "pin_button"):
@@ -528,20 +360,32 @@ class MainWindow(QMainWindow):
         if self.manager and not initial and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
 
-    def set_current_folder(self, folder: str | Path, message: str = "") -> None:
+    def set_current_folder(
+        self,
+        folder: str | Path,
+        message: str = "",
+        record_history: bool = True,
+    ) -> None:
         path = Path(folder)
         if not path.exists() or not path.is_dir():
             self.current_folder = ""
             self.show_empty_state(TEXT["select_hint"])
             return
 
-        self.current_folder = str(path)
+        target = str(path)
+        if record_history:
+            if self._history_index < 0 or self._history[self._history_index] != target:
+                self._history = self._history[: self._history_index + 1]
+                self._history.append(target)
+                self._history_index = len(self._history) - 1
+
+        self.current_folder = target
         root_index = self.file_model.set_root_path(path)
         self.list_view.setRootIndex(root_index)
         self.details_view.setRootIndex(root_index)
         self._show_current_file_view()
         self.update_path_label()
-        self.update_parent_button()
+        self.update_navigation_buttons()
         self.update_folder_state(message or TEXT["loaded"])
         if self.manager and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
@@ -553,6 +397,8 @@ class MainWindow(QMainWindow):
         self.empty_label.setText(message)
         self.stack.setCurrentWidget(self.empty_label)
         self.back_button.setEnabled(False)
+        self.forward_button.setEnabled(False)
+        self.up_button.setEnabled(False)
         self.refresh_button.setEnabled(False)
         self.status_label.setText(message)
         self.setWindowTitle("FolderBox")
@@ -569,12 +415,20 @@ class MainWindow(QMainWindow):
         self.path_label.setToolTip(self.current_folder)
         self.setWindowTitle(f"FolderBox - {Path(self.current_folder).name or self.current_folder}")
 
-    def update_parent_button(self) -> None:
+    def update_navigation_buttons(self) -> None:
         if not self.current_folder:
             self.back_button.setEnabled(False)
+            self.forward_button.setEnabled(False)
+            self.up_button.setEnabled(False)
+            self.refresh_button.setEnabled(False)
             return
+
         current = Path(self.current_folder)
-        self.back_button.setEnabled(current.parent != current and current.parent.exists())
+        self.back_button.setEnabled(self._history_index > 0)
+        self.forward_button.setEnabled(
+            0 <= self._history_index < len(self._history) - 1
+        )
+        self.up_button.setEnabled(current.parent != current and current.parent.exists())
         self.refresh_button.setEnabled(True)
 
     def update_folder_state(self, message: str | None = None) -> None:
@@ -589,7 +443,7 @@ class MainWindow(QMainWindow):
             self._show_current_file_view()
         text = message or TEXT["ready"]
         self.status_label.setText(f"{count} \u4e2a\u9879\u76ee / {text}")
-        self.update_parent_button()
+        self.update_navigation_buttons()
 
     def selected_paths(self) -> list[str]:
         view = self.active_file_view()
@@ -634,20 +488,74 @@ class MainWindow(QMainWindow):
         if self.manager and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
 
-    def clipboard_paths(self) -> list[str]:
+    def handle_file_view_key(
+        self,
+        event: QKeyEvent,
+        view: QAbstractItemView,
+    ) -> bool:
+        if event.matches(QKeySequence.StandardKey.Copy):
+            self.copy_selected()
+            return True
+        if event.matches(QKeySequence.StandardKey.Cut):
+            self.cut_selected()
+            return True
+        if event.matches(QKeySequence.StandardKey.Paste):
+            self.paste_to_current_folder()
+            return True
+        if event.matches(QKeySequence.StandardKey.SelectAll):
+            view.selectAll()
+            return True
+        if (
+            event.key() == Qt.Key.Key_N
+            and event.modifiers()
+            == (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier)
+        ):
+            self.create_new_folder()
+            return True
+        if (
+            event.key() == Qt.Key.Key_Left
+            and event.modifiers() & Qt.KeyboardModifier.AltModifier
+        ):
+            self.go_back()
+            return True
+        if (
+            event.key() == Qt.Key.Key_Right
+            and event.modifiers() & Qt.KeyboardModifier.AltModifier
+        ):
+            self.go_forward()
+            return True
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.open_selected()
+            return True
+        if event.key() == Qt.Key.Key_F2:
+            self.rename_selected()
+            return True
+        if event.key() == Qt.Key.Key_Delete:
+            self.delete_selected()
+            return True
+        if event.key() == Qt.Key.Key_Backspace:
+            self.go_to_parent()
+            return True
+        if event.key() == Qt.Key.Key_F5:
+            self.refresh_current_folder()
+            return True
+        return False
+
+    def clipboard_paths(self, existing_only: bool = True) -> list[str]:
         mime_data = QApplication.clipboard().mimeData()
         if not mime_data or not mime_data.hasUrls():
             return []
         paths: list[str] = []
         for url in mime_data.urls():
-            if url.isLocalFile():
-                local_path = url.toLocalFile()
-                if path_exists(local_path):
-                    paths.append(local_path)
+            if not url.isLocalFile():
+                continue
+            local_path = url.toLocalFile()
+            if not existing_only or path_exists(local_path):
+                paths.append(local_path)
         return paths
 
     def has_paste_data(self) -> bool:
-        return bool(self.copied_paths or self.clipboard_paths())
+        return bool(self.clipboard_paths())
 
     def can_accept_file_drop(self, mime_data: QMimeData) -> bool:
         return bool(self.current_folder and mime_data and mime_data.hasUrls())
@@ -702,6 +610,30 @@ class MainWindow(QMainWindow):
             except FileOperationError as exc:
                 self.show_error("\u6253\u5f00\u5931\u8d25", str(exc))
 
+    def go_back(self) -> None:
+        target_index = self._history_index - 1
+        while target_index >= 0:
+            target = self._history[target_index]
+            if path_exists(target) and Path(target).is_dir():
+                self._history_index = target_index
+                self.set_current_folder(target, "已后退", record_history=False)
+                return
+            self._history.pop(target_index)
+            self._history_index -= 1
+            target_index -= 1
+        self.update_navigation_buttons()
+
+    def go_forward(self) -> None:
+        target_index = self._history_index + 1
+        while target_index < len(self._history):
+            target = self._history[target_index]
+            if path_exists(target) and Path(target).is_dir():
+                self._history_index = target_index
+                self.set_current_folder(target, "已前进", record_history=False)
+                return
+            self._history.pop(target_index)
+        self.update_navigation_buttons()
+
     def go_to_parent(self) -> None:
         if not self.current_folder:
             return
@@ -722,23 +654,55 @@ class MainWindow(QMainWindow):
         self.update_path_label()
         self.update_folder_state("\u5df2\u5237\u65b0")
 
+    def _set_clipboard_paths(self, paths: list[str], action: str) -> None:
+        mime_data = QMimeData()
+        mime_data.setUrls([QUrl.fromLocalFile(path) for path in paths])
+        mime_data.setData(FOLDERBOX_CLIPBOARD_ACTION, action.encode("ascii"))
+        QApplication.clipboard().setMimeData(mime_data)
+
+    def _clipboard_action(self) -> str:
+        mime_data = QApplication.clipboard().mimeData()
+        if not mime_data or not mime_data.hasFormat(FOLDERBOX_CLIPBOARD_ACTION):
+            return "copy"
+        action = bytes(mime_data.data(FOLDERBOX_CLIPBOARD_ACTION)).decode(
+            "ascii",
+            errors="ignore",
+        )
+        return action if action in {"copy", "move"} else "copy"
+
+    def _owns_clipboard(self, paths: list[str]) -> bool:
+        return self.clipboard_paths(existing_only=False) == paths and self._clipboard_action() in {
+            "copy",
+            "move",
+        }
+
     def copy_selected(self) -> None:
         paths = self.selected_paths()
         if not paths:
             return
-        self.copied_paths = paths
-        mime_data = QMimeData()
-        mime_data.setUrls([QUrl.fromLocalFile(path) for path in paths])
-        QApplication.clipboard().setMimeData(mime_data)
-        self.update_folder_state(f"\u5df2\u590d\u5236 {len(paths)} \u4e2a\u9879\u76ee")
+        self._set_clipboard_paths(paths, "copy")
+        self.update_folder_state(f"已复制 {len(paths)} 个项目")
+
+    def cut_selected(self) -> None:
+        paths = self.selected_paths()
+        if not paths:
+            return
+        self._set_clipboard_paths(paths, "move")
+        self.update_folder_state(f"已剪切 {len(paths)} 个项目")
 
     def paste_to_current_folder(self) -> None:
         if not self.current_folder:
             return
-        paths = self.copied_paths or self.clipboard_paths()
+        paths = self.clipboard_paths()
         if not paths:
             return
-        self._copy_paths_to_folder(paths, self.current_folder, "\u7c98\u8d34")
+        move = self._clipboard_action() == "move"
+        self._transfer_paths_to_folder(
+            paths,
+            self.current_folder,
+            "移动" if move else "粘贴",
+            move=move,
+        )
 
     def copy_dropped_files(self, mime_data: QMimeData, target_index: QModelIndex) -> None:
         if not self.current_folder:
@@ -753,26 +717,91 @@ class MainWindow(QMainWindow):
             target_path = self.file_model.path_for_index(target_index)
             if target_path and Path(target_path).is_dir():
                 destination = target_path
-        self._copy_paths_to_folder(paths, destination, "\u62d6\u5165\u590d\u5236")
+        self._transfer_paths_to_folder(paths, destination, "拖入复制", move=False)
 
-    def _copy_paths_to_folder(self, paths: list[str], destination: str, action_name: str) -> None:
-        try:
-            copied, failures = copy_items(paths, destination)
-        except FileOperationError as exc:
-            self.show_error(f"{action_name}\u5931\u8d25", str(exc))
+    def _start_file_task(
+        self,
+        task: FunctionTask,
+        action_name: str,
+        on_finished: Callable[[object], None],
+    ) -> None:
+        if self._file_task is not None:
+            self.status_label.setText("已有文件操作正在进行")
             return
 
+        self._file_task = task
+        self._file_task_action = action_name
+        self._file_task_on_finished = on_finished
+        task.signals.finished.connect(self._on_file_task_finished)
+        task.signals.failed.connect(self._on_file_task_failed)
+        self.status_label.setText(f"{action_name}中…")
+        self.thread_pool.start(task)
+
+    @Slot(object)
+    def _on_file_task_finished(self, result: object) -> None:
+        callback = self._file_task_on_finished
+        self._file_task = None
+        self._file_task_action = ""
+        self._file_task_on_finished = None
+        if callback is not None:
+            callback(result)
+
+    @Slot(str)
+    def _on_file_task_failed(self, message: str) -> None:
+        action_name = self._file_task_action or "文件操作"
+        self._file_task = None
+        self._file_task_action = ""
+        self._file_task_on_finished = None
+        self.show_error(f"{action_name}失败", message)
+        self.update_folder_state(f"{action_name}失败")
+
+    def _transfer_paths_to_folder(
+        self,
+        paths: list[str],
+        destination: str,
+        action_name: str,
+        move: bool,
+    ) -> None:
+        operation = move_items if move else copy_items
+        task = FunctionTask(operation, list(paths), destination)
+        self._start_file_task(
+            task,
+            action_name,
+            lambda result: self._finish_transfer(
+                result,
+                action_name,
+                move,
+                list(paths),
+            ),
+        )
+
+    def _finish_transfer(
+        self,
+        result: object,
+        action_name: str,
+        move: bool,
+        original_paths: list[str],
+    ) -> None:
+        completed, failures = result
         self.refresh_current_folder()
+
+        if move and self._owns_clipboard(original_paths):
+            failed_paths = [str(path) for path, _ in failures]
+            if failed_paths:
+                self._set_clipboard_paths(failed_paths, "move")
+            else:
+                QApplication.clipboard().clear()
+
         if failures:
             details = "\n".join(f"{path.name}: {error}" for path, error in failures[:8])
             if len(failures) > 8:
-                details += f"\n\u5176\u4f59 {len(failures) - 8} \u9879\u5931\u8d25\u3002"
-            self.show_error(f"\u90e8\u5206\u9879\u76ee{action_name}\u5931\u8d25", details)
+                details += f"\n其余 {len(failures) - 8} 项失败。"
+            self.show_error(f"部分项目{action_name}失败", details)
             self.update_folder_state(
-                f"\u5df2{action_name} {len(copied)} \u4e2a\u9879\u76ee\uff0c{len(failures)} \u4e2a\u5931\u8d25"
+                f"已{action_name} {len(completed)} 个项目，{len(failures)} 个失败"
             )
         else:
-            self.update_folder_state(f"{action_name}\u5b8c\u6210\uff0c\u5171 {len(copied)} \u4e2a\u9879\u76ee")
+            self.update_folder_state(f"{action_name}完成，共 {len(completed)} 个项目")
 
     def delete_selected(self) -> None:
         paths = self.selected_paths()
@@ -789,14 +818,36 @@ class MainWindow(QMainWindow):
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        failures = delete_to_recycle_bin(paths)
+        task = FunctionTask(delete_to_recycle_bin, list(paths))
+        self._start_file_task(task, "删除", self._finish_delete)
+
+    def _finish_delete(self, result: object) -> None:
+        failures = result
         self.refresh_current_folder()
         if failures:
             details = "\n".join(f"{path.name}: {error}" for path, error in failures[:8])
-            self.show_error("\u90e8\u5206\u9879\u76ee\u5220\u9664\u5931\u8d25", details)
-            self.update_folder_state(f"\u5220\u9664\u5b8c\u6210\uff0c{len(failures)} \u4e2a\u5931\u8d25")
+            self.show_error("部分项目删除失败", details)
+            self.update_folder_state(f"删除完成，{len(failures)} 个失败")
         else:
-            self.update_folder_state("\u5220\u9664\u5b8c\u6210")
+            self.update_folder_state("删除完成")
+
+    def create_new_folder(self) -> None:
+        if not self.current_folder:
+            return
+        name, ok = QInputDialog.getText(
+            self,
+            TEXT["new_folder"],
+            TEXT["folder_name"],
+            text="新建文件夹",
+        )
+        if not ok:
+            return
+        try:
+            create_folder(self.current_folder, name)
+            self.refresh_current_folder()
+            self.update_folder_state("文件夹已创建")
+        except FileOperationError as exc:
+            self.show_error("新建文件夹失败", str(exc))
 
     def rename_selected(self) -> None:
         paths = self.selected_paths()
@@ -854,6 +905,7 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         open_action = menu.addAction(TEXT["open"])
         copy_action = menu.addAction(TEXT["copy"])
+        cut_action = menu.addAction(TEXT["cut"])
         rename_action = menu.addAction(TEXT["rename"])
         delete_action = menu.addAction(TEXT["delete"])
         show_action = menu.addAction(TEXT["show"])
@@ -869,6 +921,8 @@ class MainWindow(QMainWindow):
             self.open_selected()
         elif selected_action == copy_action:
             self.copy_selected()
+        elif selected_action == cut_action:
+            self.cut_selected()
         elif selected_action == rename_action:
             self.rename_selected()
         elif selected_action == delete_action:
@@ -889,6 +943,7 @@ class MainWindow(QMainWindow):
         if self.current_folder:
             paste_action = menu.addAction(TEXT["paste"])
             paste_action.setEnabled(self.has_paste_data())
+            new_folder_action = menu.addAction(TEXT["new_folder"])
             refresh_action = menu.addAction(TEXT["refresh"])
             choose_action = menu.addAction(TEXT["choose"])
             new_window_action = menu.addAction(TEXT["new_window"])
@@ -896,6 +951,7 @@ class MainWindow(QMainWindow):
             open_folder_action = menu.addAction(TEXT["open_folder"])
         else:
             paste_action = None
+            new_folder_action = None
             refresh_action = None
             open_folder_action = None
             view_action = None
@@ -905,6 +961,8 @@ class MainWindow(QMainWindow):
         selected_action = menu.exec(global_position)
         if self.current_folder and selected_action == paste_action:
             self.paste_to_current_folder()
+        elif self.current_folder and selected_action == new_folder_action:
+            self.create_new_folder()
         elif self.current_folder and selected_action == refresh_action:
             self.refresh_current_folder()
         elif selected_action == choose_action:
