@@ -20,6 +20,13 @@ class InstanceBridge(QObject):
     def listen(self) -> bool:
         if self.server.listen(SERVER_NAME):
             return True
+
+        probe = QLocalSocket()
+        probe.connectToServer(SERVER_NAME)
+        if probe.waitForConnected(150):
+            probe.abort()
+            return False
+
         QLocalServer.removeServer(SERVER_NAME)
         return self.server.listen(SERVER_NAME)
 
