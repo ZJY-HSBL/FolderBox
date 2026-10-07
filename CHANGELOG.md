@@ -10,10 +10,13 @@ All notable changes to FolderBox are documented here.
 - Added per-Box accent colors with presets and a custom color picker.
 - Added configurable icon sizes for icon view.
 - Added a visual Workspace manager for switching, saving, renaming, and deleting layouts.
+- Added optional Windows Explorer context-menu integration for opening folders in FolderBox.
+- Added single-instance local IPC so Explorer launches are routed to the running FolderBox process.
 
 ### Changed
 
 - Consolidated Workspace management into one dedicated dialog while keeping quick switching in the tray.
+- External folder requests reuse an empty Box when possible and otherwise open a managed Box that inherits appearance settings.
 
 ## [1.1.0] - 2026-10-07
 
