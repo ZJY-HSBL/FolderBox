@@ -105,6 +105,9 @@ class WorkspaceDialog(QDialog):
         name = self.manager.active_workspace()
         if not name:
             return
+        if name.strip() in self.manager.workspace_names():
+            QMessageBox.warning(self, "保存失败", "已存在同名 Workspace；请使用“保存当前布局”更新它。")
+            return
         try:
             self.manager.save_workspace(name)
         except ValueError as exc:
