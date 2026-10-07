@@ -105,9 +105,6 @@ class WorkspaceDialog(QDialog):
         name = self.manager.active_workspace()
         if not name:
             return
-        if name.strip() in self.manager.workspace_names():
-            QMessageBox.warning(self, "保存失败", "已存在同名 Workspace；请使用“保存当前布局”更新它。")
-            return
         try:
             self.manager.save_workspace(name)
         except ValueError as exc:
@@ -117,10 +114,14 @@ class WorkspaceDialog(QDialog):
 
     def save_as(self) -> None:
         name, ok = QInputDialog.getText(self, "另存为 Workspace", "Workspace 名称：")
-        if not ok or not name.strip():
+        clean_name = name.strip()
+        if not ok or not clean_name:
+            return
+        if clean_name in self.manager.workspace_names():
+            QMessageBox.warning(self, "保存失败", "已存在同名 Workspace；请换一个名称。")
             return
         try:
-            self.manager.save_workspace(name)
+            self.manager.save_workspace(clean_name)
         except ValueError as exc:
             QMessageBox.warning(self, "保存失败", str(exc))
             return
