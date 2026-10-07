@@ -138,3 +138,15 @@ def test_cycle_workspace_wraps_names(tmp_path) -> None:
 
     assert manager.cycle_workspace(1)
     assert loaded == ["One"]
+
+
+
+def test_normalized_workspace_preserves_edge_peek_preference(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+
+    states = manager._normalize_window_states(
+        [{"folder": "", "edge_peek_enabled": True}]
+    )
+
+    assert states[0]["edge_peek_enabled"] is True
