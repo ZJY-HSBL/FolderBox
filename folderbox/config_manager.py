@@ -16,9 +16,15 @@ DEFAULT_WINDOW_STATE: dict[str, Any] = {
     "always_on_top": False,
     "background_opacity": 0.72,
     "view_mode": "icons",
+    "box_title": "",
+    "locked": False,
 }
 
-DEFAULT_CONFIG: dict[str, Any] = {"windows": []}
+DEFAULT_CONFIG: dict[str, Any] = {
+    "windows": [],
+    "workspaces": {},
+    "active_workspace": "",
+}
 
 
 class ConfigManager:
@@ -40,9 +46,19 @@ class ConfigManager:
             with self.config_path.open("r", encoding="utf-8") as file:
                 loaded = json.load(file)
             windows = loaded.get("windows", [])
+            workspaces = loaded.get("workspaces", {})
+            active_workspace = loaded.get("active_workspace", "")
             if not isinstance(windows, list):
                 raise ValueError("windows must be a list")
-            self._config = {"windows": windows}
+            if not isinstance(workspaces, dict):
+                raise ValueError("workspaces must be an object")
+            if not isinstance(active_workspace, str):
+                raise ValueError("active_workspace must be a string")
+            self._config = {
+                "windows": windows,
+                "workspaces": workspaces,
+                "active_workspace": active_workspace,
+            }
         except (OSError, json.JSONDecodeError, ValueError, AttributeError):
             self._config = DEFAULT_CONFIG.copy()
         return self._config
