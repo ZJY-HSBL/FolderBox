@@ -20,6 +20,15 @@ if TYPE_CHECKING:
     from folderbox.window_manager import WindowManager
 
 
+LAYOUT_LABELS = {
+    "": "保持已保存位置",
+    "grid": "均衡网格",
+    "columns": "横向分栏",
+    "rows": "纵向分栏",
+    "cascade": "瀑布层叠",
+}
+
+
 class WorkspaceDialog(QDialog):
     def __init__(self, manager: WindowManager, parent=None) -> None:
         super().__init__(parent)
@@ -35,6 +44,17 @@ class WorkspaceDialog(QDialog):
         self.list_widget = QListWidget(self)
         self.list_widget.itemDoubleClicked.connect(lambda _: self.load_selected())
         layout.addWidget(self.list_widget, 1)
+
+        policy_row = QHBoxLayout()
+        policy_label = QLabel("选中 Workspace 默认布局：")
+        self.layout_policy_combo = QComboBox(self)
+        for mode, label in LAYOUT_LABELS.items():
+            self.layout_policy_combo.addItem(label, mode)
+        self.save_policy_button = QPushButton("保存策略")
+        policy_row.addWidget(policy_label)
+        policy_row.addWidget(self.layout_policy_combo, 1)
+        policy_row.addWidget(self.save_policy_button)
+        layout.addLayout(policy_row)
 
         arrange_row = QHBoxLayout()
         arrange_label = QLabel("当前桌面排列：")
@@ -68,6 +88,7 @@ class WorkspaceDialog(QDialog):
         secondary_row.addWidget(self.close_button)
         layout.addLayout(secondary_row)
 
+        self.save_policy_button.clicked.connect(self.save_layout_policy)
         self.arrange_button.clicked.connect(self.arrange_current)
         self.load_button.clicked.connect(self.load_selected)
         self.update_button.clicked.connect(self.update_active)
@@ -87,6 +108,9 @@ class WorkspaceDialog(QDialog):
         for name in self.manager.workspace_names():
             count = self.manager.workspace_box_count(name)
             suffix = " · 当前" if name == active else ""
+            layout_mode = self.manager.workspace_layout_mode(name)
+            if layout_mode:
+                suffix += f" · 自动：{LAYOUT_LABELS[layout_mode]}"
             item = QListWidgetItem(f"{name}  ·  {count} 个 Box{suffix}")
             item.setData(Qt.ItemDataRole.UserRole, name)
             self.list_widget.addItem(item)
@@ -102,11 +126,28 @@ class WorkspaceDialog(QDialog):
         return str(item.data(Qt.ItemDataRole.UserRole)) if item else ""
 
     def _sync_buttons(self) -> None:
-        has_selection = bool(self.selected_name())
+        selected = self.selected_name()
+        has_selection = bool(selected)
         self.load_button.setEnabled(has_selection)
         self.rename_button.setEnabled(has_selection)
         self.delete_button.setEnabled(has_selection)
+        self.layout_policy_combo.setEnabled(has_selection)
+        self.save_policy_button.setEnabled(has_selection)
         self.update_button.setEnabled(bool(self.manager.active_workspace()))
+
+        mode = self.manager.workspace_layout_mode(selected) if has_selection else ""
+        index = self.layout_policy_combo.findData(mode)
+        self.layout_policy_combo.setCurrentIndex(max(0, index))
+
+    def save_layout_policy(self) -> None:
+        name = self.selected_name()
+        if not name:
+            return
+        mode = str(self.layout_policy_combo.currentData() or "")
+        if not self.manager.set_workspace_layout_mode(name, mode or None):
+            QMessageBox.warning(self, "保存失败", "无法保存该 Workspace 的默认布局策略。")
+            return
+        self.refresh()
 
     def arrange_current(self) -> None:
         mode = str(self.arrange_combo.currentData() or "grid")
