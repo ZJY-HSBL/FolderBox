@@ -2,6 +2,19 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.2.0] - Unreleased
+
+### Added
+
+- Added per-Box light and dark themes.
+- Added per-Box accent colors with presets and a custom color picker.
+- Added configurable icon sizes for icon view.
+- Added a visual Workspace manager for switching, saving, renaming, and deleting layouts.
+
+### Changed
+
+- Consolidated Workspace management into one dedicated dialog while keeping quick switching in the tray.
+
 ## [1.1.0] - 2026-10-07
 
 ### Added
