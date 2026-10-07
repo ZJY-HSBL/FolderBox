@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import platform
 from pathlib import Path
 
@@ -39,23 +38,6 @@ def is_valid_windows_filename(name: str) -> bool:
         return False
     device_name = name.split(".", 1)[0].upper()
     return device_name not in WINDOWS_RESERVED_NAMES
-
-
-def shorten_path(path: str | Path, max_chars: int = 64) -> str:
-    text = str(path)
-    if len(text) <= max_chars:
-        return text
-
-    path_obj = Path(text)
-    drive = path_obj.drive
-    name = path_obj.name
-    prefix = drive + os.sep if drive else ""
-    remaining = max_chars - len(prefix) - len(name) - 5
-    if remaining <= 0:
-        return f"{prefix}...{name}" if prefix else f"...{name[-max_chars + 3:]}"
-
-    middle = text[len(prefix) : -len(name)] if name else text[len(prefix) :]
-    return f"{prefix}{middle[:remaining]}...{os.sep}{name}"
 
 
 def format_file_size(size: int) -> str:
