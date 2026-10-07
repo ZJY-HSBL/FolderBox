@@ -1,15 +1,16 @@
-name: Release
+name: Packaging Smoke Test
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - "build/**"
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build:
+  package:
     runs-on: windows-latest
 
     steps:
@@ -45,18 +46,24 @@ jobs:
           if (-not (Test-Path "dist\FolderBox\FolderBox.exe")) {
             throw "FolderBox.exe was not generated."
           }
+          Get-Item "dist\FolderBox\FolderBox.exe" | Format-List Name,Length,FullName
 
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup -y --no-progress
 
-      - name: Build installer and portable archive
+      - name: Build package artifacts
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart("v")
+          $version = "1.1.0-smoke"
           New-Item -ItemType Directory -Force release | Out-Null
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "packaging\FolderBox.iss"
-          Compress-Archive -Path "dist\FolderBox\*" -DestinationPath "release\FolderBox-Portable-$version.zip" -Force
+
+          Compress-Archive `
+            -Path "dist\FolderBox\*" `
+            -DestinationPath "release\FolderBox-Portable-$version.zip" `
+            -Force
+
           $files = Get-ChildItem release -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" }
           if ($files.Count -lt 2) {
             throw "Expected installer and portable archive were not generated."
@@ -68,8 +75,12 @@ jobs:
           }
           $lines | Set-Content "release\SHA256SUMS.txt" -Encoding ascii
 
-      - name: Publish GitHub Release
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --generate-notes
+          Get-ChildItem release -File | Select-Object Name,Length
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FolderBox-v1.1.0-smoke
+          path: release/*
+          if-no-files-found: error
+          retention-days: 7
