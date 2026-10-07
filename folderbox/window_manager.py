@@ -80,6 +80,8 @@ class WindowManager:
 
         if len(self.windows) == 1 and not self.windows[0].current_folder:
             window = self.windows[0]
+            if hasattr(window, "ensure_edge_peek_expanded"):
+                window.ensure_edge_peek_expanded()
             window.set_current_folder(folder)
             window.show()
             window.raise_()
@@ -147,6 +149,8 @@ class WindowManager:
         if not self.windows:
             self.create_window(initial_state=DEFAULT_WINDOW_STATE.copy(), show=True)
         for window in self.windows:
+            if hasattr(window, "ensure_edge_peek_expanded"):
+                window.ensure_edge_peek_expanded()
             window.show()
             window.raise_()
 
@@ -184,6 +188,8 @@ class WindowManager:
         )
 
     def place_window(self, window: MainWindow, placement: str) -> bool:
+        if hasattr(window, "ensure_edge_peek_expanded"):
+            window.ensure_edge_peek_expanded()
         screen = window.screen() or self.app.primaryScreen()
         if screen is None:
             return False
@@ -209,6 +215,10 @@ class WindowManager:
             ]
             if not windows:
                 continue
+
+            for window in windows:
+                if hasattr(window, "ensure_edge_peek_expanded"):
+                    window.ensure_edge_peek_expanded()
 
             rectangles = layout_rectangles(
                 mode,
@@ -378,6 +388,12 @@ class WindowManager:
                     "icon_size": int(
                         item.get("icon_size", DEFAULT_WINDOW_STATE["icon_size"])
                         or DEFAULT_WINDOW_STATE["icon_size"]
+                    ),
+                    "edge_peek_enabled": bool(
+                        item.get(
+                            "edge_peek_enabled",
+                            DEFAULT_WINDOW_STATE["edge_peek_enabled"],
+                        )
                     ),
                 }
             )

@@ -21,6 +21,7 @@ DEFAULT_WINDOW_STATE: dict[str, Any] = {
     "theme_mode": "light",
     "accent_color": "#3b82f6",
     "icon_size": 40,
+    "edge_peek_enabled": False,
 }
 
 DEFAULT_CONFIG: dict[str, Any] = {

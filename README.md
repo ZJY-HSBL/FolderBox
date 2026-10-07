@@ -64,6 +64,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
+- Optionally auto-hide an individual Box at a screen edge and expand it again when the pointer reaches the visible trigger strip.
 - Switch to the previous or next Workspace directly from the tray.
 - Hide or show every Box globally with `Ctrl+Alt+B` on Windows.
 
@@ -156,6 +157,7 @@ D:/Work/Paper
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
+- 每个 Box 可独立开启边缘自动收起；移出鼠标后仅保留窄触发条，鼠标触碰后立即展开。
 - 可直接从托盘切换上一个或下一个 Workspace。
 - Windows 下可使用全局快捷键 `Ctrl+Alt+B` 一键隐藏或显示全部 Box。
 
