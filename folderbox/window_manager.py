@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from PySide6.QtWidgets import QApplication
@@ -72,7 +73,7 @@ class WindowManager:
         self.save_window_states()
 
     def open_folder_window(self, folder: str) -> bool:
-        if not path_exists(folder):
+        if not path_exists(folder) or not Path(folder).is_dir():
             return False
 
         if len(self.windows) == 1 and not self.windows[0].current_folder:
