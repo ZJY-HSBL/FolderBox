@@ -72,6 +72,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
 | `Ctrl+Shift+N` | Create folder |
 | `Ctrl+F` | Focus current-folder filter |
+| `Ctrl+Alt+B` | Globally hide / show all Boxes on Windows |
 | `Ctrl + mouse wheel` | Change icon size in icon view |
 | `Alt+Left` / `Alt+Right` | Back / forward |
 | `Backspace` | Up one folder |
@@ -161,6 +162,7 @@ D:/Work/Paper
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | 复制 / 剪切 / 粘贴 |
 | `Ctrl+Shift+N` | 新建文件夹 |
 | `Ctrl+F` | 聚焦当前目录过滤框 |
+| `Ctrl+Alt+B` | Windows 下全局隐藏 / 显示全部 Box |
 | `Ctrl + 鼠标滚轮` | 调整图标视图的图标大小 |
 | `Alt+Left` / `Alt+Right` | 后退 / 前进 |
 | `Backspace` | 返回上一级 |
