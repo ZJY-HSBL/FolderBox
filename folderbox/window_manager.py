@@ -12,6 +12,9 @@ from folderbox.main_window import MainWindow
 from folderbox.utils import path_exists
 
 
+WORKSPACE_LAYOUT_MODES = {"grid", "columns", "rows", "cascade"}
+
+
 class WindowManager:
     def __init__(self, app: QApplication, config: ConfigManager) -> None:
         self.app = app
@@ -243,6 +246,32 @@ class WindowManager:
     def active_workspace(self) -> str:
         return str(self.config.get("active_workspace", "") or "")
 
+    def workspace_layout_mode(self, name: str) -> str:
+        clean_name = name.strip()
+        layouts = self.config.get("workspace_layouts", {})
+        if not clean_name or not isinstance(layouts, dict):
+            return ""
+        mode = str(layouts.get(clean_name, "") or "")
+        return mode if mode in WORKSPACE_LAYOUT_MODES else ""
+
+    def set_workspace_layout_mode(self, name: str, mode: str | None) -> bool:
+        clean_name = name.strip()
+        if clean_name not in self.workspace_names():
+            return False
+
+        clean_mode = str(mode or "").strip()
+        if clean_mode and clean_mode not in WORKSPACE_LAYOUT_MODES:
+            return False
+
+        layouts = dict(self.config.get("workspace_layouts", {}) or {})
+        if clean_mode:
+            layouts[clean_name] = clean_mode
+        else:
+            layouts.pop(clean_name, None)
+        self.config.set("workspace_layouts", layouts)
+        self.config.save()
+        return True
+
     def cycle_workspace(self, step: int) -> bool:
         names = self.workspace_names()
         if not names:
@@ -292,7 +321,12 @@ class WindowManager:
         self.config.set("active_workspace", clean_name)
         for index, state in enumerate(states):
             self.create_window(initial_state=state, offset_index=index, show=True)
-        self.save_window_states()
+
+        layout_mode = self.workspace_layout_mode(clean_name)
+        if layout_mode:
+            self.arrange_visible(layout_mode)
+        else:
+            self.save_window_states()
         return True
 
     def rename_workspace(self, old_name: str, new_name: str) -> bool:
@@ -309,6 +343,12 @@ class WindowManager:
 
         workspaces[new_clean] = workspaces.pop(old_clean)
         self.config.set("workspaces", workspaces)
+
+        layouts = dict(self.config.get("workspace_layouts", {}) or {})
+        if old_clean in layouts:
+            layouts[new_clean] = layouts.pop(old_clean)
+            self.config.set("workspace_layouts", layouts)
+
         if self.active_workspace() == old_clean:
             self.config.set("active_workspace", new_clean)
         self.config.save()
@@ -329,6 +369,12 @@ class WindowManager:
 
         del workspaces[clean_name]
         self.config.set("workspaces", workspaces)
+
+        layouts = dict(self.config.get("workspace_layouts", {}) or {})
+        if clean_name in layouts:
+            del layouts[clean_name]
+            self.config.set("workspace_layouts", layouts)
+
         if self.active_workspace() == clean_name:
             self.config.set("active_workspace", "")
         self.config.save()
