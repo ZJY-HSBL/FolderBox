@@ -651,6 +651,10 @@ class MainWindow(QMainWindow):
         if event.matches(QKeySequence.StandardKey.SelectAll):
             view.selectAll()
             return True
+        if event.matches(QKeySequence.StandardKey.Find):
+            self.search_edit.setFocus()
+            self.search_edit.selectAll()
+            return True
         if (
             event.key() == Qt.Key.Key_N
             and event.modifiers()
