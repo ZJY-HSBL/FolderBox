@@ -46,8 +46,9 @@ def create_app(argv: list[str]) -> tuple[QApplication, ConfigManager]:
 
 
 def run_app(argv: list[str]) -> int:
-    app, config = create_app(argv)
     folder = requested_folder(argv)
+    qt_argv = [argv[0]] if argv else ["folderbox"]
+    app, config = create_app(qt_argv)
 
     if notify_existing_instance(folder):
         return 0
