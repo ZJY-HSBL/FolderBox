@@ -6,6 +6,15 @@ from PySide6.QtCore import QDir, QModelIndex, Qt
 from PySide6.QtWidgets import QFileSystemModel
 
 
+def name_filter_pattern(query: str) -> str | None:
+    clean = query.strip()
+    if not clean:
+        return None
+    if "*" in clean or "?" in clean:
+        return clean
+    return f"*{clean}*"
+
+
 class FolderFileModel:
     def __init__(self) -> None:
         self.model = QFileSystemModel()
@@ -21,6 +30,10 @@ class FolderFileModel:
         index = self.model.setRootPath(path)
         self.model.sort(0, Qt.AscendingOrder)
         return index
+
+    def set_name_filter(self, query: str) -> None:
+        pattern = name_filter_pattern(query)
+        self.model.setNameFilters([pattern] if pattern else [])
 
     def current_root_path(self) -> str:
         return self._root_path
@@ -44,10 +57,7 @@ class FolderFileModel:
         return index.isValid() and self.model.isDir(index)
 
     def item_count(self) -> int:
-        if not self._root_path:
+        root_index = self.root_index()
+        if not root_index.isValid():
             return 0
-        directory = QDir(self._root_path)
-        if not directory.exists():
-            return 0
-        entries = directory.entryList(QDir.AllEntries | QDir.NoDotAndDotDot, QDir.Name | QDir.IgnoreCase)
-        return len(entries)
+        return self.model.rowCount(root_index)
