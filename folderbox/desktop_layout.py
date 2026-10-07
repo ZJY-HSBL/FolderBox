@@ -94,15 +94,18 @@ def layout_rectangles(
     if count <= 0:
         return []
 
+    max_columns = max(1, (screen.width() - gap) // (320 + gap))
+    max_rows = max(1, (screen.height() - gap) // (340 + gap))
+
     if mode == "grid":
-        columns = max(1, math.ceil(math.sqrt(count)))
+        columns = min(max_columns, max(1, math.ceil(math.sqrt(count))))
         rows = max(1, math.ceil(count / columns))
     elif mode == "columns":
-        columns = count
-        rows = 1
+        columns = min(count, max_columns)
+        rows = max(1, math.ceil(count / columns))
     elif mode == "rows":
-        columns = 1
-        rows = count
+        rows = min(count, max_rows)
+        columns = max(1, math.ceil(count / rows))
     elif mode == "cascade":
         width = min(cascade_size.width(), max(320, screen.width() - gap * 2))
         height = min(cascade_size.height(), max(340, screen.height() - gap * 2))
