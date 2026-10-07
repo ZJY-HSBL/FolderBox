@@ -26,6 +26,15 @@ def test_main_window_builds_product_chrome(tmp_path) -> None:
 
     window._apply_theme_mode("dark")
     window._apply_accent_color("#8b5cf6")
+    window._apply_icon_size(40)
+    window.adjust_icon_size(1)
+    assert window.icon_size == 48
+    window.adjust_icon_size(1)
+    assert window.icon_size == 56
+    window.adjust_icon_size(1)
+    assert window.icon_size == 56
+    window.adjust_icon_size(-1)
+    assert window.icon_size == 48
     window._apply_icon_size(56)
     state = window.snapshot_state()
 
