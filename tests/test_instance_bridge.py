@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -18,16 +20,27 @@ def test_instance_bridge_round_trip() -> None:
 
     bridge = InstanceBridge(app)
     received: list[str] = []
+    send_result: list[bool] = []
     bridge.requestReceived.connect(received.append)
 
     assert bridge.listen()
-    assert notify_existing_instance("D:/Research")
 
-    for _ in range(20):
+    sender = threading.Thread(
+        target=lambda: send_result.append(
+            notify_existing_instance("D:/Research", timeout_ms=1000)
+        )
+    )
+    sender.start()
+
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline and (sender.is_alive() or not received):
         app.processEvents()
-        if received:
-            break
+        time.sleep(0.005)
 
+    sender.join(timeout=1)
+    app.processEvents()
+
+    assert send_result == [True]
     assert received == ["D:/Research"]
 
     bridge.server.close()
