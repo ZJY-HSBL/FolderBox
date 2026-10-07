@@ -29,4 +29,30 @@ def test_saved_config_is_valid_json(tmp_path) -> None:
     manager.set("windows", [])
     manager.save()
 
-    assert json.loads(config_path.read_text(encoding="utf-8")) == {"windows": []}
+    assert json.loads(config_path.read_text(encoding="utf-8")) == {
+        "windows": [],
+        "workspaces": {},
+        "active_workspace": "",
+    }
+
+
+def test_workspace_state_round_trip(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    manager = ConfigManager(config_path)
+    workspace = {
+        "Research": [
+            {
+                "folder": "D:/Research",
+                "box_title": "Papers",
+                "locked": True,
+            }
+        ]
+    }
+    manager.set("workspaces", workspace)
+    manager.set("active_workspace", "Research")
+    manager.save()
+
+    reloaded = ConfigManager(config_path)
+
+    assert reloaded.get("workspaces") == workspace
+    assert reloaded.get("active_workspace") == "Research"
