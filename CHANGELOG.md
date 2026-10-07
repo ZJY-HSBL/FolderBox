@@ -2,6 +2,20 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.6.0] - Unreleased
+
+### Added
+
+- Added per-Workspace automatic layout policies.
+- Added default layout choices for saved position, balanced grid, horizontal columns, vertical rows, and cascade.
+- Added Workspace manager controls for assigning or clearing automatic layout behavior.
+- Added Workspace list indicators that show the active automatic layout policy.
+
+### Changed
+
+- Loading or cycling to a Workspace now reapplies its configured layout policy after restoring Boxes.
+- Workspace rename and delete operations now keep layout-policy metadata consistent.
+
 ## [1.5.0] - 2026-10-08
 
 ### Added
