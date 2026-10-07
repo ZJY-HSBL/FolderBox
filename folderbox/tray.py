@@ -24,6 +24,8 @@ class TrayController:
         self.new_box_action = QAction("新建 Box", self.menu)
         self.workspace_menu = self.menu.addMenu("工作区")
         self.save_workspace_action = QAction("保存当前工作区…", self.menu)
+        self.previous_workspace_action = QAction("上一个工作区", self.menu)
+        self.next_workspace_action = QAction("下一个工作区", self.menu)
         self.manage_workspaces_action = QAction("管理工作区…", self.menu)
         self.snap_action = QAction("Box 自动吸附", self.menu)
         self.snap_action.setCheckable(True)
@@ -45,6 +47,12 @@ class TrayController:
         self.toggle_action.triggered.connect(self.manager.toggle_all)
         self.new_box_action.triggered.connect(lambda: self.manager.open_new_window(None))
         self.save_workspace_action.triggered.connect(self.save_workspace)
+        self.previous_workspace_action.triggered.connect(
+            lambda: self.cycle_workspace(-1)
+        )
+        self.next_workspace_action.triggered.connect(
+            lambda: self.cycle_workspace(1)
+        )
         self.manage_workspaces_action.triggered.connect(self.manage_workspaces)
         self.snap_action.toggled.connect(self.manager.set_snap_enabled)
         self.startup_action.triggered.connect(self.set_startup)
@@ -79,6 +87,8 @@ class TrayController:
 
         self.workspace_menu.clear()
         self.workspace_menu.addAction(self.save_workspace_action)
+        self.workspace_menu.addAction(self.previous_workspace_action)
+        self.workspace_menu.addAction(self.next_workspace_action)
         self.workspace_menu.addAction(self.manage_workspaces_action)
         self.workspace_menu.addSeparator()
 
@@ -94,6 +104,11 @@ class TrayController:
             action.setCheckable(True)
             action.setChecked(name == active)
             action.triggered.connect(lambda checked=False, value=name: self.load_workspace(value))
+
+    def cycle_workspace(self, step: int) -> None:
+        if not self.manager.cycle_workspace(step):
+            return
+        self.refresh_workspace_menu()
 
     def save_workspace(self) -> None:
         current = self.manager.active_workspace()
