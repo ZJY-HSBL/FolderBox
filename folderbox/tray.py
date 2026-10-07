@@ -31,7 +31,7 @@ class TrayController:
         self.toggle_action = QAction(toggle_label, self.menu)
         self.new_box_action = QAction("新建 Box", self.menu)
         self.workspace_menu = self.menu.addMenu("工作区")
-        self.arrange_menu = self.menu.addMenu("一键排列")
+        self.arrange_menu = QMenu("一键排列", self.menu)
         self.save_workspace_action = QAction("保存当前工作区…", self.menu)
         self.previous_workspace_action = QAction("上一个工作区", self.menu)
         self.next_workspace_action = QAction("下一个工作区", self.menu)
