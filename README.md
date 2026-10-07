@@ -49,6 +49,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Filter the current folder instantly by file name, with optional `*` and `?` wildcard patterns.
 - Move deleted items to the recycle bin instead of permanently deleting them.
 - Drag files or folders from Windows Explorer into FolderBox.
+- Drag selected files or folders out of FolderBox to the desktop or Windows Explorer.
 - Keep file icons and text clear while only the background is transparent.
 - Save window position, size, opacity, pinned state, folder path, and view mode.
 - Keep FolderBox available from the Windows system tray.
@@ -133,6 +134,7 @@ D:/Work/Paper
 - 支持按文件名快速过滤当前目录，并可使用 `*`、`?` 通配符。
 - 删除操作优先移入回收站，而不是永久删除。
 - 支持从 Windows 资源管理器拖入文件或文件夹。
+- 支持将 FolderBox 中选中的文件或文件夹直接拖出到桌面或 Windows 资源管理器。
 - 背景可透明，但文件图标和文字保持清晰不透明。
 - 自动保存窗口位置、大小、透明度、置顶状态、绑定路径和视图模式。
 - 支持 Windows 系统托盘常驻。
