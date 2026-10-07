@@ -12,6 +12,8 @@ All notable changes to FolderBox are documented here.
 - Added a visual Workspace manager for switching, saving, renaming, and deleting layouts.
 - Added optional Windows Explorer context-menu integration for opening folders in FolderBox.
 - Added single-instance local IPC so Explorer launches are routed to the running FolderBox process.
+- Added explicit multi-selection drag-out support using standard local file URLs.
+- Added Ctrl + mouse-wheel icon zoom for icon view.
 
 ### Changed
 

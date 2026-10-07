@@ -49,6 +49,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Filter the current folder instantly by file name, with optional `*` and `?` wildcard patterns.
 - Move deleted items to the recycle bin instead of permanently deleting them.
 - Drag files or folders from Windows Explorer into FolderBox.
+- Drag one or multiple selected files/folders out of FolderBox to the desktop, Explorer, or other file-drop targets.
 - Keep file icons and text clear while only the background is transparent.
 - Save window position, size, opacity, pinned state, folder path, and view mode.
 - Keep FolderBox available from the Windows system tray.
@@ -68,6 +69,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | Copy / cut / paste |
 | `Ctrl+Shift+N` | Create folder |
 | `Ctrl+F` | Focus current-folder filter |
+| `Ctrl + mouse wheel` | Change icon size in icon view |
 | `Alt+Left` / `Alt+Right` | Back / forward |
 | `Backspace` | Up one folder |
 | `F2` | Rename selected item |
@@ -133,6 +135,7 @@ D:/Work/Paper
 - 支持按文件名快速过滤当前目录，并可使用 `*`、`?` 通配符。
 - 删除操作优先移入回收站，而不是永久删除。
 - 支持从 Windows 资源管理器拖入文件或文件夹。
+- 支持将一个或多个选中项目从 FolderBox 拖到桌面、资源管理器或其他文件拖放目标。
 - 背景可透明，但文件图标和文字保持清晰不透明。
 - 自动保存窗口位置、大小、透明度、置顶状态、绑定路径和视图模式。
 - 支持 Windows 系统托盘常驻。
@@ -152,6 +155,7 @@ D:/Work/Paper
 | `Ctrl+C` / `Ctrl+X` / `Ctrl+V` | 复制 / 剪切 / 粘贴 |
 | `Ctrl+Shift+N` | 新建文件夹 |
 | `Ctrl+F` | 聚焦当前目录过滤框 |
+| `Ctrl + 鼠标滚轮` | 调整图标视图的图标大小 |
 | `Alt+Left` / `Alt+Right` | 后退 / 前进 |
 | `Backspace` | 返回上一级 |
 | `F2` | 重命名选中项目 |
