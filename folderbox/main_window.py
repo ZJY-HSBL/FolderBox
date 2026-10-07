@@ -539,16 +539,17 @@ class MainWindow(QMainWindow):
             return True
         return False
 
-    def clipboard_paths(self) -> list[str]:
+    def clipboard_paths(self, existing_only: bool = True) -> list[str]:
         mime_data = QApplication.clipboard().mimeData()
         if not mime_data or not mime_data.hasUrls():
             return []
         paths: list[str] = []
         for url in mime_data.urls():
-            if url.isLocalFile():
-                local_path = url.toLocalFile()
-                if path_exists(local_path):
-                    paths.append(local_path)
+            if not url.isLocalFile():
+                continue
+            local_path = url.toLocalFile()
+            if not existing_only or path_exists(local_path):
+                paths.append(local_path)
         return paths
 
     def has_paste_data(self) -> bool:
@@ -670,7 +671,7 @@ class MainWindow(QMainWindow):
         return action if action in {"copy", "move"} else "copy"
 
     def _owns_clipboard(self, paths: list[str]) -> bool:
-        return self.clipboard_paths() == paths and self._clipboard_action() in {
+        return self.clipboard_paths(existing_only=False) == paths and self._clipboard_action() in {
             "copy",
             "move",
         }
