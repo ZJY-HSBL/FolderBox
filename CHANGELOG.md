@@ -2,6 +2,24 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.7.0] - Unreleased
+
+### Added
+
+- Added per-Workspace global hotkey slots using `Ctrl+Alt+1` through `Ctrl+Alt+9`.
+- Added Workspace manager controls for assigning, clearing, and displaying hotkey slots.
+- Added dynamic Win32 hotkey registration that refreshes immediately when Workspace bindings change.
+- Added tray labels that show configured Workspace shortcuts.
+
+### Changed
+
+- The global hotkey controller now dispatches multiple registered commands instead of handling only `Ctrl+Alt+B`.
+- Workspace rename and delete operations now migrate or remove global hotkey metadata automatically.
+
+### Fixed
+
+- Invalid or duplicate Workspace hotkey slots are rejected instead of producing ambiguous bindings.
+
 ## [1.6.0] - 2026-10-08
 
 ### Added
