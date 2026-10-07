@@ -18,8 +18,8 @@ class TrayController:
         self.toggle_action = QAction("隐藏 / 显示全部 Box", self.menu)
         self.new_box_action = QAction("新建 Box", self.menu)
         self.workspace_menu = self.menu.addMenu("工作区")
-        self.save_workspace_action = QAction("保存当前工作区…", self.workspace_menu)
-        self.manage_workspaces_action = QAction("管理工作区…", self.workspace_menu)
+        self.save_workspace_action = QAction("保存当前工作区…", self.menu)
+        self.manage_workspaces_action = QAction("管理工作区…", self.menu)
         self.startup_action = QAction("开机启动", self.menu)
         self.startup_action.setCheckable(True)
         self.quit_action = QAction("退出 FolderBox", self.menu)
@@ -101,7 +101,7 @@ class TrayController:
         self._workspace_dialog.raise_()
         self._workspace_dialog.activateWindow()
 
-    def _release_workspace_dialog(self) -> None:
+    def _release_workspace_dialog(self, result: int = 0) -> None:
         if self._workspace_dialog is not None:
             self._workspace_dialog.deleteLater()
             self._workspace_dialog = None
