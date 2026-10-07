@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QInputDialog,
     QLabel,
+    QListView,
     QMainWindow,
     QMenu,
     QMessageBox,
