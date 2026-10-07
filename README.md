@@ -61,6 +61,9 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Personalize each Box with light/dark theme, accent color, and icon size.
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 - Manage Workspaces from a dedicated visual manager while keeping tray-based quick switching.
+- Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
+- Switch to the previous or next Workspace directly from the tray.
+- Hide or show every Box globally with `Ctrl+Alt+B` on Windows.
 
 ### Keyboard Shortcuts
 
@@ -147,6 +150,9 @@ D:/Work/Paper
 - 每个 Box 可独立设置浅色/深色主题、强调色和图标大小。
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
 - 提供独立 Workspace 管理窗口，同时保留托盘快速切换。
+- Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
+- 可直接从托盘切换上一个或下一个 Workspace。
+- Windows 下可使用全局快捷键 `Ctrl+Alt+B` 一键隐藏或显示全部 Box。
 
 ### 常用快捷键
 
