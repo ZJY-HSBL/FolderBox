@@ -72,3 +72,19 @@ def test_save_workspace_rejects_empty_layout(tmp_path) -> None:
         assert "at least one Box" in str(exc)
     else:
         raise AssertionError("Expected empty workspace save to fail")
+
+
+
+def test_empty_window_state_does_not_erase_active_workspace(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research", "box_title": "Papers"})]
+    manager.save_workspace("Research")
+
+    manager.windows = []
+    manager.save_window_states()
+
+    assert config.get("windows") == []
+    assert config.get("workspaces")["Research"] == [
+        {"folder": "D:/Research", "box_title": "Papers"}
+    ]
