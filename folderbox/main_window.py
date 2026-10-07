@@ -36,11 +36,10 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMenu,
     QMessageBox,
-    QPushButton,
     QHeaderView,
     QSizeGrip,
-    QSlider,
     QStackedWidget,
+    QStyle,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -140,6 +139,7 @@ class MainWindow(QMainWindow):
         self.view_mode = self._initial_view_mode()
         self.box_title = str(self.initial_state.get("box_title", "") or "").strip()
         self.locked = bool(self.initial_state.get("locked", False))
+        self.always_on_top = bool(self.initial_state.get("always_on_top", False))
 
         self.setWindowTitle("FolderBox")
         self.setMinimumSize(320, 340)
@@ -149,7 +149,7 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._connect_model_signals()
         self._apply_background_opacity(int(self.background_opacity * 100))
-        self._apply_always_on_top(bool(self.initial_state.get("always_on_top", False)), initial=True)
+        self._apply_always_on_top(self.always_on_top, initial=True)
         self._apply_locked(self.locked, initial=True)
 
         last_folder = str(self.initial_state.get("folder", "") or "")
@@ -185,49 +185,46 @@ class MainWindow(QMainWindow):
         self.title_label.setToolTip("双击修改 Box 名称")
         self.title_label.mouseDoubleClickEvent = self._title_label_double_click
 
-        self.choose_button = QPushButton(TEXT["choose"])
+        style = self.style()
+
+        self.choose_button = QToolButton()
+        self.choose_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon))
+        self.choose_button.setToolTip(TEXT["choose"])
         self.back_button = QToolButton()
-        self.back_button.setText("←")
+        self.back_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_ArrowBack))
         self.back_button.setToolTip(TEXT["back"])
         self.forward_button = QToolButton()
-        self.forward_button.setText("→")
+        self.forward_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_ArrowForward))
         self.forward_button.setToolTip(TEXT["forward"])
         self.up_button = QToolButton()
-        self.up_button.setText("↑")
+        self.up_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_ArrowUp))
         self.up_button.setToolTip(TEXT["up"])
         self.refresh_button = QToolButton()
-        self.refresh_button.setText(TEXT["refresh"])
-        self.pin_button = QToolButton()
-        self.pin_button.setText(TEXT["pin"])
-        self.pin_button.setCheckable(True)
-        self.lock_button = QToolButton()
-        self.lock_button.setText(TEXT["lock"])
-        self.lock_button.setToolTip(TEXT["lock_tip"])
-        self.lock_button.setCheckable(True)
-        self.new_window_button = QToolButton()
-        self.new_window_button.setText(TEXT["new_window"])
+        self.refresh_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_BrowserReload))
+        self.refresh_button.setToolTip(TEXT["refresh"])
         self.view_button = QToolButton()
         self.view_button.setToolTip(TEXT["switch_to_details"])
+        self.more_button = QToolButton()
+        self.more_button.setText("⋯")
+        self.more_button.setToolTip("更多")
+        self.more_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.min_button = QToolButton()
-        self.min_button.setText("-")
+        self.min_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_TitleBarMinButton))
         self.min_button.setToolTip(TEXT["minimize"])
         self.close_button = QToolButton()
-        self.close_button.setText("x")
+        self.close_button.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_TitleBarCloseButton))
         self.close_button.setToolTip(TEXT["close"])
 
-        self.opacity_slider = QSlider(Qt.Orientation.Horizontal)
-        self.opacity_slider.setRange(20, 100)
-        self.opacity_slider.setFixedWidth(74)
-        self.opacity_slider.setToolTip(TEXT["opacity_tip"])
-        self.opacity_slider.setValue(int(self.background_opacity * 100))
+        for button in (self.more_button, self.min_button, self.close_button):
+            button.setObjectName("windowControl")
+            button.setAutoRaise(True)
+
+        self._build_more_menu()
+        self.more_button.setMenu(self.more_menu)
 
         title_layout.addWidget(self.title_label)
         title_layout.addStretch(1)
-        title_layout.addWidget(self.pin_button)
-        title_layout.addWidget(self.lock_button)
-        title_layout.addWidget(self.new_window_button)
-        title_layout.addWidget(self.view_button)
-        title_layout.addWidget(self.opacity_slider)
+        title_layout.addWidget(self.more_button)
         title_layout.addWidget(self.min_button)
         title_layout.addWidget(self.close_button)
         root_layout.addWidget(self.title_bar)
@@ -252,6 +249,7 @@ class MainWindow(QMainWindow):
         navigation_layout.addWidget(self.breadcrumb, 1)
         navigation_layout.addWidget(self.search_edit)
         navigation_layout.addWidget(self.refresh_button)
+        navigation_layout.addWidget(self.view_button)
         root_layout.addWidget(self.navigation_bar)
 
         self.list_view = DesktopListView(self)
@@ -329,13 +327,9 @@ class MainWindow(QMainWindow):
             lambda path: self.set_current_folder(path, TEXT["entered"])
         )
         self.search_edit.textChanged.connect(self.apply_search_filter)
-        self.pin_button.toggled.connect(self._apply_always_on_top)
-        self.lock_button.toggled.connect(self._apply_locked)
-        self.new_window_button.clicked.connect(self.open_new_window)
         self.view_button.clicked.connect(self.toggle_view_mode)
         self.min_button.clicked.connect(self.showMinimized)
         self.close_button.clicked.connect(self.close)
-        self.opacity_slider.valueChanged.connect(self._apply_background_opacity)
         self.list_view.doubleClicked.connect(self.open_index)
         self.details_view.doubleClicked.connect(self.open_index)
         self.list_view.customContextMenuRequested.connect(lambda position: self.show_file_context_menu(position, self.list_view))
@@ -387,8 +381,11 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(build_stylesheet(self.background_opacity))
 
     def _apply_always_on_top(self, enabled: bool, initial: bool = False) -> None:
-        if hasattr(self, "pin_button"):
-            self.pin_button.setChecked(enabled)
+        self.always_on_top = enabled
+        if hasattr(self, "pin_action"):
+            self.pin_action.blockSignals(True)
+            self.pin_action.setChecked(enabled)
+            self.pin_action.blockSignals(False)
         self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, enabled)
         if not initial:
             self.show()
@@ -397,16 +394,66 @@ class MainWindow(QMainWindow):
 
     def _apply_locked(self, enabled: bool, initial: bool = False) -> None:
         self.locked = enabled
-        if hasattr(self, "lock_button"):
-            self.lock_button.blockSignals(True)
-            self.lock_button.setChecked(enabled)
-            self.lock_button.setText(TEXT["unlock"] if enabled else TEXT["lock"])
-            self.lock_button.blockSignals(False)
+        if hasattr(self, "lock_action"):
+            self.lock_action.blockSignals(True)
+            self.lock_action.setChecked(enabled)
+            self.lock_action.blockSignals(False)
         if hasattr(self, "size_grip"):
             self.size_grip.setVisible(not enabled)
             self.size_grip.setEnabled(not enabled)
         if not initial and self.manager and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
+
+    def _build_more_menu(self) -> None:
+        self.more_menu = QMenu(self)
+
+        new_box_action = self.more_menu.addAction("新建 Box")
+        rename_box_action = self.more_menu.addAction(TEXT["rename_box"])
+        self.more_menu.addSeparator()
+
+        self.pin_action = self.more_menu.addAction("保持置顶")
+        self.pin_action.setCheckable(True)
+        self.pin_action.setChecked(self.always_on_top)
+        self.lock_action = self.more_menu.addAction("锁定位置和大小")
+        self.lock_action.setCheckable(True)
+        self.lock_action.setChecked(self.locked)
+
+        self.more_menu.addSeparator()
+        self.view_action = self.more_menu.addAction(TEXT["switch_to_details"])
+        opacity_menu = self.more_menu.addMenu("背景透明度")
+        for percent in (40, 60, 80, 100):
+            action = opacity_menu.addAction(f"{percent}%")
+            action.triggered.connect(
+                lambda checked=False, value=percent: self._apply_background_opacity(value)
+            )
+        opacity_menu.addSeparator()
+        custom_opacity_action = opacity_menu.addAction("自定义…")
+
+        self.more_menu.addSeparator()
+        open_folder_action = self.more_menu.addAction(TEXT["open_folder"])
+        choose_folder_action = self.more_menu.addAction(TEXT["choose"])
+
+        new_box_action.triggered.connect(self.open_new_window)
+        rename_box_action.triggered.connect(self.rename_box)
+        self.pin_action.toggled.connect(self._apply_always_on_top)
+        self.lock_action.toggled.connect(self._apply_locked)
+        self.view_action.triggered.connect(self.toggle_view_mode)
+        custom_opacity_action.triggered.connect(self.choose_background_opacity)
+        open_folder_action.triggered.connect(self.open_current_folder_in_explorer)
+        choose_folder_action.triggered.connect(self.choose_folder)
+
+    def choose_background_opacity(self) -> None:
+        value, ok = QInputDialog.getInt(
+            self,
+            "背景透明度",
+            "透明度（20–100%）：",
+            value=round(self.background_opacity * 100),
+            min=20,
+            max=100,
+            step=5,
+        )
+        if ok:
+            self._apply_background_opacity(value)
 
     def rename_box(self) -> None:
         name, ok = QInputDialog.getText(
@@ -544,12 +591,22 @@ class MainWindow(QMainWindow):
             self.stack.setCurrentWidget(self.list_view)
 
     def _update_view_button_text(self) -> None:
+        style = self.style()
         if self.view_mode == "details":
-            self.view_button.setText(TEXT["view_details"])
+            self.view_button.setIcon(
+                style.standardIcon(QStyle.StandardPixmap.SP_FileDialogListView)
+            )
             self.view_button.setToolTip(TEXT["switch_to_icons"])
+            menu_text = TEXT["switch_to_icons"]
         else:
-            self.view_button.setText(TEXT["view_icons"])
+            self.view_button.setIcon(
+                style.standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView)
+            )
             self.view_button.setToolTip(TEXT["switch_to_details"])
+            menu_text = TEXT["switch_to_details"]
+
+        if hasattr(self, "view_action"):
+            self.view_action.setText(menu_text)
 
     def toggle_view_mode(self) -> None:
         self.set_view_mode("details" if self.view_mode == "icons" else "icons")
@@ -1036,7 +1093,7 @@ class MainWindow(QMainWindow):
 
         menu.addSeparator()
         rename_box_action = menu.addAction(TEXT["rename_box"])
-        lock_action = menu.addAction(TEXT["unlock"] if self.locked else TEXT["lock"])
+        toggle_lock_action = menu.addAction(TEXT["unlock"] if self.locked else TEXT["lock"])
 
         selected_action = menu.exec(global_position)
         if self.current_folder and selected_action == paste_action:
@@ -1055,7 +1112,7 @@ class MainWindow(QMainWindow):
             self.open_current_folder_in_explorer()
         elif selected_action == rename_box_action:
             self.rename_box()
-        elif selected_action == lock_action:
+        elif selected_action == toggle_lock_action:
             self._apply_locked(not self.locked)
 
     def snapshot_state(self) -> dict[str, Any]:
@@ -1066,7 +1123,7 @@ class MainWindow(QMainWindow):
             "y": geometry.y(),
             "width": geometry.width(),
             "height": geometry.height(),
-            "always_on_top": self.pin_button.isChecked(),
+            "always_on_top": self.always_on_top,
             "background_opacity": round(self.background_opacity, 2),
             "view_mode": self.view_mode,
             "box_title": self.box_title,
