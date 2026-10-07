@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from PySide6.QtCore import (
     QThreadPool,
     QUrl,
     Qt,
+    Slot,
 )
 from PySide6.QtGui import (
     QCloseEvent,
@@ -125,6 +127,8 @@ class MainWindow(QMainWindow):
         self._history_index = -1
         self.thread_pool = QThreadPool.globalInstance()
         self._file_task: FunctionTask | None = None
+        self._file_task_action = ""
+        self._file_task_on_finished: Callable[[object], None] | None = None
         self._drag_offset: QPoint | None = None
         self.background_opacity = self._initial_background_opacity()
         self.view_mode = self._initial_view_mode()
@@ -719,29 +723,37 @@ class MainWindow(QMainWindow):
         self,
         task: FunctionTask,
         action_name: str,
-        on_finished: Any,
+        on_finished: Callable[[object], None],
     ) -> None:
         if self._file_task is not None:
             self.status_label.setText("已有文件操作正在进行")
             return
 
         self._file_task = task
-
-        def finish(result: object) -> None:
-            if self._file_task is task:
-                self._file_task = None
-            on_finished(result)
-
-        def fail(message: str) -> None:
-            if self._file_task is task:
-                self._file_task = None
-            self.show_error(f"{action_name}失败", message)
-            self.update_folder_state(f"{action_name}失败")
-
-        task.signals.finished.connect(finish)
-        task.signals.failed.connect(fail)
+        self._file_task_action = action_name
+        self._file_task_on_finished = on_finished
+        task.signals.finished.connect(self._on_file_task_finished)
+        task.signals.failed.connect(self._on_file_task_failed)
         self.status_label.setText(f"{action_name}中…")
         self.thread_pool.start(task)
+
+    @Slot(object)
+    def _on_file_task_finished(self, result: object) -> None:
+        callback = self._file_task_on_finished
+        self._file_task = None
+        self._file_task_action = ""
+        self._file_task_on_finished = None
+        if callback is not None:
+            callback(result)
+
+    @Slot(str)
+    def _on_file_task_failed(self, message: str) -> None:
+        action_name = self._file_task_action or "文件操作"
+        self._file_task = None
+        self._file_task_action = ""
+        self._file_task_on_finished = None
+        self.show_error(f"{action_name}失败", message)
+        self.update_folder_state(f"{action_name}失败")
 
     def _transfer_paths_to_folder(
         self,
