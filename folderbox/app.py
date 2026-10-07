@@ -55,7 +55,8 @@ def run_app(argv: list[str]) -> int:
     manager = WindowManager(app, config)
     bridge = InstanceBridge(app)
     bridge.requestReceived.connect(manager.handle_external_request)
-    bridge.listen()
+    if not bridge.listen() and notify_existing_instance(folder):
+        return 0
 
     manager.restore_windows()
     if folder:
