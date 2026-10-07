@@ -39,7 +39,6 @@ from PySide6.QtWidgets import (
     QPushButton,
     QHeaderView,
     QSizeGrip,
-    QSizePolicy,
     QSlider,
     QStackedWidget,
     QToolButton,
