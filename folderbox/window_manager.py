@@ -123,6 +123,9 @@ class WindowManager:
             raise ValueError("Workspace name cannot be empty.")
 
         states = self.snapshot_windows()
+        if not states:
+            raise ValueError("Workspace must contain at least one Box.")
+
         workspaces = dict(self.config.get("workspaces", {}) or {})
         workspaces[clean_name] = states
         self.config.set("workspaces", workspaces)
