@@ -150,3 +150,66 @@ def test_normalized_workspace_preserves_edge_peek_preference(tmp_path) -> None:
     )
 
     assert states[0]["edge_peek_enabled"] is True
+
+
+
+def test_workspace_layout_policy_can_be_set_and_cleared(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+
+    assert manager.set_workspace_layout_mode("Research", "grid")
+    assert manager.workspace_layout_mode("Research") == "grid"
+
+    assert manager.set_workspace_layout_mode("Research", None)
+    assert manager.workspace_layout_mode("Research") == ""
+
+
+def test_workspace_layout_policy_rejects_unknown_modes(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+
+    assert not manager.set_workspace_layout_mode("Research", "spiral")
+    assert manager.workspace_layout_mode("Research") == ""
+
+
+def test_workspace_rename_moves_layout_policy(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.set_workspace_layout_mode("Research", "columns")
+
+    assert manager.rename_workspace("Research", "Papers")
+    assert manager.workspace_layout_mode("Research") == ""
+    assert manager.workspace_layout_mode("Papers") == "columns"
+
+
+def test_workspace_delete_removes_layout_policy(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.set_workspace_layout_mode("Research", "rows")
+
+    assert manager.delete_workspace("Research")
+    assert config.get("workspace_layouts") == {}
+
+
+def test_workspace_load_applies_saved_layout_policy(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    config.set("workspaces", {"Research": [{"folder": ""}]})
+    config.set("workspace_layouts", {"Research": "cascade"})
+
+    created: list[dict] = []
+    arranged: list[str] = []
+    manager.create_window = lambda initial_state, offset_index, show: created.append(initial_state)
+    manager.arrange_visible = lambda mode: arranged.append(mode) or 1
+
+    assert manager.load_workspace("Research")
+    assert created == [{"folder": "", "x": 200, "y": 200, "width": 420, "height": 520, "always_on_top": False, "background_opacity": 0.72, "view_mode": "icons", "box_title": "", "locked": False, "theme_mode": "light", "accent_color": "#3b82f6", "icon_size": 40, "edge_peek_enabled": False}]
+    assert arranged == ["cascade"]

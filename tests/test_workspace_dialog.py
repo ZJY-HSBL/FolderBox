@@ -61,3 +61,26 @@ def test_workspace_dialog_exposes_layout_templates(tmp_path) -> None:
 
     dialog.close()
     app.processEvents()
+
+
+
+def test_workspace_dialog_edits_default_layout_policy(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(app, config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+
+    dialog = WorkspaceDialog(manager)
+
+    assert dialog.layout_policy_combo.count() == 5
+    assert dialog.layout_policy_combo.itemData(0) == ""
+    grid_index = dialog.layout_policy_combo.findData("grid")
+    dialog.layout_policy_combo.setCurrentIndex(grid_index)
+    dialog.save_layout_policy()
+
+    assert manager.workspace_layout_mode("Research") == "grid"
+    assert "自动：均衡网格" in dialog.list_widget.item(0).text()
+
+    dialog.close()
+    app.processEvents()
