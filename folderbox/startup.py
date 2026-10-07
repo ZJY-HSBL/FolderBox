@@ -43,7 +43,7 @@ def is_startup_enabled() -> bool:
         return False
     except OSError:
         return False
-    return bool(str(value).strip())
+    return str(value).strip() == startup_command().strip()
 
 
 def set_startup_enabled(enabled: bool) -> None:
