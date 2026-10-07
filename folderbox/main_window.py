@@ -430,8 +430,9 @@ class MainWindow(QMainWindow):
         custom_opacity_action = opacity_menu.addAction("自定义…")
 
         self.more_menu.addSeparator()
-        open_folder_action = self.more_menu.addAction(TEXT["open_folder"])
+        self.open_folder_action = self.more_menu.addAction(TEXT["open_folder"])
         choose_folder_action = self.more_menu.addAction(TEXT["choose"])
+        self.more_menu.aboutToShow.connect(self._sync_more_menu)
 
         new_box_action.triggered.connect(self.open_new_window)
         rename_box_action.triggered.connect(self.rename_box)
@@ -439,8 +440,20 @@ class MainWindow(QMainWindow):
         self.lock_action.toggled.connect(self._apply_locked)
         self.view_action.triggered.connect(self.toggle_view_mode)
         custom_opacity_action.triggered.connect(self.choose_background_opacity)
-        open_folder_action.triggered.connect(self.open_current_folder_in_explorer)
+        self.open_folder_action.triggered.connect(self.open_current_folder_in_explorer)
         choose_folder_action.triggered.connect(self.choose_folder)
+
+    def _sync_more_menu(self) -> None:
+        self.pin_action.blockSignals(True)
+        self.pin_action.setChecked(self.always_on_top)
+        self.pin_action.blockSignals(False)
+
+        self.lock_action.blockSignals(True)
+        self.lock_action.setChecked(self.locked)
+        self.lock_action.blockSignals(False)
+
+        self.open_folder_action.setEnabled(bool(self.current_folder))
+        self._update_view_button_text()
 
     def choose_background_opacity(self) -> None:
         value, ok = QInputDialog.getInt(
