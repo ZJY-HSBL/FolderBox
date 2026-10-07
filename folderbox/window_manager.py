@@ -7,7 +7,7 @@ from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication
 
 from folderbox.config_manager import ConfigManager, DEFAULT_WINDOW_STATE
-from folderbox.desktop_layout import placement_position, snapped_position
+from folderbox.desktop_layout import layout_rectangles, placement_position, snapped_position
 from folderbox.main_window import MainWindow
 from folderbox.utils import path_exists
 
@@ -196,6 +196,33 @@ class WindowManager:
         window.move(target)
         self.save_window_states()
         return True
+
+    def arrange_visible(self, mode: str) -> int:
+        arranged = 0
+        for screen in self.app.screens():
+            windows = [
+                window
+                for window in self.windows
+                if window.isVisible()
+                and not window.locked
+                and (window.screen() or self.app.primaryScreen()) is screen
+            ]
+            if not windows:
+                continue
+
+            rectangles = layout_rectangles(
+                mode,
+                len(windows),
+                screen.availableGeometry(),
+                gap=8,
+            )
+            for window, geometry in zip(windows, rectangles, strict=True):
+                window.setGeometry(geometry)
+                arranged += 1
+
+        if arranged:
+            self.save_window_states()
+        return arranged
 
     def workspace_names(self) -> list[str]:
         workspaces = self.config.get("workspaces", {})
