@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
     QHBoxLayout,
     QInputDialog,
@@ -35,6 +36,19 @@ class WorkspaceDialog(QDialog):
         self.list_widget.itemDoubleClicked.connect(lambda _: self.load_selected())
         layout.addWidget(self.list_widget, 1)
 
+        arrange_row = QHBoxLayout()
+        arrange_label = QLabel("当前桌面排列：")
+        self.arrange_combo = QComboBox(self)
+        self.arrange_combo.addItem("均衡网格", "grid")
+        self.arrange_combo.addItem("横向分栏", "columns")
+        self.arrange_combo.addItem("纵向分栏", "rows")
+        self.arrange_combo.addItem("瀑布层叠", "cascade")
+        self.arrange_button = QPushButton("立即排列")
+        arrange_row.addWidget(arrange_label)
+        arrange_row.addWidget(self.arrange_combo, 1)
+        arrange_row.addWidget(self.arrange_button)
+        layout.addLayout(arrange_row)
+
         primary_row = QHBoxLayout()
         self.load_button = QPushButton("切换")
         self.update_button = QPushButton("保存当前布局")
@@ -54,6 +68,7 @@ class WorkspaceDialog(QDialog):
         secondary_row.addWidget(self.close_button)
         layout.addLayout(secondary_row)
 
+        self.arrange_button.clicked.connect(self.arrange_current)
         self.load_button.clicked.connect(self.load_selected)
         self.update_button.clicked.connect(self.update_active)
         self.save_as_button.clicked.connect(self.save_as)
@@ -92,6 +107,11 @@ class WorkspaceDialog(QDialog):
         self.rename_button.setEnabled(has_selection)
         self.delete_button.setEnabled(has_selection)
         self.update_button.setEnabled(bool(self.manager.active_workspace()))
+
+    def arrange_current(self) -> None:
+        mode = str(self.arrange_combo.currentData() or "grid")
+        self.manager.arrange_visible(mode)
+        self.refresh()
 
     def load_selected(self) -> None:
         name = self.selected_name()
