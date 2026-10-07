@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
         self._restore_window_state()
         self._build_ui()
         self._connect_model_signals()
-        self._apply_background_opacity(int(self.background_opacity * 100))
+        self._apply_background_opacity(int(self.background_opacity * 100), initial=True)
         self._apply_always_on_top(self.always_on_top, initial=True)
         self._apply_locked(self.locked, initial=True)
 
@@ -396,10 +396,12 @@ class MainWindow(QMainWindow):
     def _icon_grid_size(self) -> QSize:
         return QSize(self.icon_size * 2 + 24, self.icon_size + 52)
 
-    def _apply_background_opacity(self, value: int) -> None:
+    def _apply_background_opacity(self, value: int, initial: bool = False) -> None:
         self.background_opacity = max(0.2, min(1.0, value / 100))
         if hasattr(self, "shell"):
             self._refresh_style_sheet()
+        if not initial:
+            self._save_window_state()
 
     def _refresh_style_sheet(self) -> None:
         self.setStyleSheet(
