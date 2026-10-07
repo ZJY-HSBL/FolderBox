@@ -100,6 +100,7 @@ def set_shell_integration_enabled(enabled: bool) -> None:
         else:
             for root_path in (DIRECTORY_KEY, BACKGROUND_KEY):
                 _delete_registry_tree(winreg, root_path)
+        _notify_explorer()
     except OSError as exc:
         raise ShellIntegrationError(f"无法修改资源管理器右键菜单：{exc}") from exc
 
@@ -129,4 +130,17 @@ def _delete_registry_tree(winreg, path: str) -> None:
     try:
         winreg.DeleteKey(winreg.HKEY_CURRENT_USER, path)
     except FileNotFoundError:
+        pass
+
+
+
+def _notify_explorer() -> None:
+    if not is_windows():
+        return
+    try:
+        import ctypes
+
+        shell32 = ctypes.windll.shell32
+        shell32.SHChangeNotify(0x08000000, 0x0000, None, None)
+    except (AttributeError, OSError):
         pass
