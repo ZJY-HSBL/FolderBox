@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QRect,
     QSize,
     QThreadPool,
+    QTimer,
     QUrl,
     Qt,
     Slot,
@@ -48,6 +49,7 @@ from PySide6.QtWidgets import (
 )
 
 from folderbox.config_manager import ConfigManager
+from folderbox.edge_peek import collapsed_position, detect_edge
 from folderbox.file_model import FolderFileModel
 from folderbox.file_ops import (
     FileOperationError,
@@ -154,6 +156,14 @@ class MainWindow(QMainWindow):
             str(self.initial_state.get("accent_color", DEFAULT_ACCENT_COLOR) or DEFAULT_ACCENT_COLOR)
         )
         self.icon_size = self._initial_icon_size()
+        self.edge_peek_enabled = bool(self.initial_state.get("edge_peek_enabled", False))
+        self._edge_peek_collapsed = False
+        self._edge_peek_expanded_geometry: QRect | None = None
+        self._edge_peek_edge: str | None = None
+        self._edge_peek_timer = QTimer(self)
+        self._edge_peek_timer.setSingleShot(True)
+        self._edge_peek_timer.setInterval(450)
+        self._edge_peek_timer.timeout.connect(self._collapse_edge_peek)
 
         self.setWindowTitle("FolderBox")
         self.setMinimumSize(320, 340)
@@ -436,6 +446,54 @@ class MainWindow(QMainWindow):
         if not initial and self.manager and hasattr(self.manager, "save_window_states"):
             self.manager.save_window_states()
 
+    def _apply_edge_peek(self, enabled: bool, initial: bool = False) -> None:
+        self.edge_peek_enabled = enabled
+        if hasattr(self, "edge_peek_action"):
+            self.edge_peek_action.blockSignals(True)
+            self.edge_peek_action.setChecked(enabled)
+            self.edge_peek_action.blockSignals(False)
+
+        if not enabled:
+            self._edge_peek_timer.stop()
+            self.ensure_edge_peek_expanded()
+
+        if not initial:
+            self._save_window_state()
+
+    def _collapse_edge_peek(self) -> None:
+        if (
+            not self.edge_peek_enabled
+            or self._edge_peek_collapsed
+            or self._drag_offset is not None
+            or QApplication.activePopupWidget() is not None
+            or self.isMinimized()
+        ):
+            return
+
+        screen = self.screen() or QApplication.primaryScreen()
+        if screen is None:
+            return
+
+        expanded = self.geometry()
+        available = screen.availableGeometry()
+        edge = detect_edge(expanded, available)
+        if edge is None:
+            return
+
+        self._edge_peek_expanded_geometry = QRect(expanded)
+        self._edge_peek_edge = edge
+        self._edge_peek_collapsed = True
+        self.move(collapsed_position(edge, expanded, available))
+
+    def ensure_edge_peek_expanded(self) -> None:
+        self._edge_peek_timer.stop()
+        if not self._edge_peek_collapsed:
+            return
+        if self._edge_peek_expanded_geometry is not None:
+            self.setGeometry(self._edge_peek_expanded_geometry)
+        self._edge_peek_collapsed = False
+        self._edge_peek_edge = None
+
     def _build_more_menu(self) -> None:
         self.more_menu = QMenu(self)
 
@@ -449,6 +507,9 @@ class MainWindow(QMainWindow):
         self.lock_action = self.more_menu.addAction("锁定位置和大小")
         self.lock_action.setCheckable(True)
         self.lock_action.setChecked(self.locked)
+        self.edge_peek_action = self.more_menu.addAction("边缘自动收起")
+        self.edge_peek_action.setCheckable(True)
+        self.edge_peek_action.setChecked(self.edge_peek_enabled)
 
         self.more_menu.addSeparator()
         self.view_action = self.more_menu.addAction(TEXT["switch_to_details"])
@@ -524,6 +585,7 @@ class MainWindow(QMainWindow):
         rename_box_action.triggered.connect(self.rename_box)
         self.pin_action.toggled.connect(self._apply_always_on_top)
         self.lock_action.toggled.connect(self._apply_locked)
+        self.edge_peek_action.toggled.connect(self._apply_edge_peek)
         self.view_action.triggered.connect(self.toggle_view_mode)
         custom_accent_action.triggered.connect(self.choose_accent_color)
         custom_opacity_action.triggered.connect(self.choose_background_opacity)
@@ -538,6 +600,10 @@ class MainWindow(QMainWindow):
         self.lock_action.blockSignals(True)
         self.lock_action.setChecked(self.locked)
         self.lock_action.blockSignals(False)
+
+        self.edge_peek_action.blockSignals(True)
+        self.edge_peek_action.setChecked(self.edge_peek_enabled)
+        self.edge_peek_action.blockSignals(False)
 
         self.open_folder_action.setEnabled(bool(self.current_folder))
         self.layout_menu.setEnabled(not self.locked)
@@ -595,6 +661,7 @@ class MainWindow(QMainWindow):
     def place_box(self, placement: str) -> None:
         if self.locked:
             return
+        self.ensure_edge_peek_expanded()
         if self.manager and hasattr(self.manager, "place_window"):
             self.manager.place_window(self, placement)
 
@@ -1276,7 +1343,11 @@ class MainWindow(QMainWindow):
             self._apply_locked(not self.locked)
 
     def snapshot_state(self) -> dict[str, Any]:
-        geometry = self.geometry()
+        geometry = (
+            QRect(self._edge_peek_expanded_geometry)
+            if self._edge_peek_collapsed and self._edge_peek_expanded_geometry is not None
+            else self.geometry()
+        )
         return {
             "folder": self.current_folder if path_exists(self.current_folder) else "",
             "x": geometry.x(),
@@ -1291,6 +1362,7 @@ class MainWindow(QMainWindow):
             "theme_mode": self.theme_mode,
             "accent_color": self.accent_color,
             "icon_size": self.icon_size,
+            "edge_peek_enabled": self.edge_peek_enabled,
         }
 
     def _on_directory_loaded(self, loaded_path: str) -> None:
@@ -1298,6 +1370,7 @@ class MainWindow(QMainWindow):
             self.update_folder_state(TEXT["loaded"])
 
     def _title_mouse_press(self, event: QMouseEvent) -> None:
+        self.ensure_edge_peek_expanded()
         if self.locked:
             event.ignore()
             return
@@ -1325,6 +1398,16 @@ class MainWindow(QMainWindow):
 
     def show_error(self, title: str, message: str) -> None:
         QMessageBox.warning(self, title, message)
+
+    def enterEvent(self, event) -> None:
+        self._edge_peek_timer.stop()
+        self.ensure_edge_peek_expanded()
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        if self.edge_peek_enabled and not self._edge_peek_collapsed:
+            self._edge_peek_timer.start()
+        super().leaveEvent(event)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
