@@ -53,6 +53,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Save window position, size, opacity, pinned state, folder path, and view mode.
 - Keep FolderBox available from the Windows system tray.
 - Hide or show all FolderBox windows from the tray.
+- Enable or disable launch-at-login directly from the tray.
 - Give each Box a custom title and lock its desktop position and size.
 - Save named Workspaces and restore an entire multi-Box desktop layout in one action.
 
@@ -119,6 +120,7 @@ D:/Work/Paper
 - 自动保存窗口位置、大小、透明度、置顶状态、绑定路径和视图模式。
 - 支持 Windows 系统托盘常驻。
 - 可从托盘一键隐藏或显示全部 FolderBox。
+- 可直接在托盘中开启或关闭 Windows 开机启动。
 - 每个 Box 可设置独立名称，并可锁定桌面位置和大小。
 - 支持命名 Workspace，一次保存和恢复整套多 Box 桌面布局。
 
