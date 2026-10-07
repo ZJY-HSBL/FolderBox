@@ -71,6 +71,51 @@ class WindowManager:
         )
         self.save_window_states()
 
+    def open_folder_window(self, folder: str) -> bool:
+        if not path_exists(folder):
+            return False
+
+        if len(self.windows) == 1 and not self.windows[0].current_folder:
+            window = self.windows[0]
+            window.set_current_folder(folder)
+            window.show()
+            window.raise_()
+            window.activateWindow()
+            self.save_window_states()
+            return True
+
+        base = DEFAULT_WINDOW_STATE.copy()
+        if self.windows:
+            source_state = self.windows[-1].snapshot_state()
+            for key in (
+                "background_opacity",
+                "view_mode",
+                "theme_mode",
+                "accent_color",
+                "icon_size",
+            ):
+                if key in source_state:
+                    base[key] = source_state[key]
+
+        base["folder"] = folder
+        base["box_title"] = ""
+        base["x"] = int(base["x"]) + len(self.windows) * 36
+        base["y"] = int(base["y"]) + len(self.windows) * 36
+        window = self.create_window(
+            initial_state=base,
+            offset_index=len(self.windows),
+            show=True,
+        )
+        window.raise_()
+        window.activateWindow()
+        self.save_window_states()
+        return True
+
+    def handle_external_request(self, folder: str) -> None:
+        if folder and self.open_folder_window(folder):
+            return
+        self.show_all()
+
     def unregister_window(self, window: MainWindow) -> None:
         if window in self.windows:
             self.windows.remove(window)
