@@ -25,6 +25,15 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -e ".[build,dev]"
 
+      - name: Validate release version
+        shell: pwsh
+        run: |
+          $version = python -c "import folderbox; print(folderbox.__version__)"
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "Tag ${{ github.ref_name }} does not match package version $version."
+          }
+          "FOLDERBOX_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Quality checks
         run: |
           python -m ruff check folderbox tests
@@ -53,7 +62,7 @@ jobs:
       - name: Build installer and portable archive
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart("v")
+          $version = $env:FOLDERBOX_VERSION
           New-Item -ItemType Directory -Force release | Out-Null
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "packaging\FolderBox.iss"
           Compress-Archive -Path "dist\FolderBox\*" -DestinationPath "release\FolderBox-Portable-$version.zip" -Force
@@ -72,4 +81,10 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --generate-notes
+        run: |
+          $notesFile = "release-notes/$env:FOLDERBOX_VERSION.md"
+          if (Test-Path $notesFile) {
+            gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --notes-file $notesFile
+          } else {
+            gh release create "${{ github.ref_name }}" release/* --title "FolderBox ${{ github.ref_name }}" --generate-notes
+          }
