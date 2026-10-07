@@ -31,6 +31,7 @@ class TrayController:
         self.toggle_action = QAction(toggle_label, self.menu)
         self.new_box_action = QAction("新建 Box", self.menu)
         self.workspace_menu = self.menu.addMenu("工作区")
+        self.arrange_menu = self.menu.addMenu("一键排列")
         self.save_workspace_action = QAction("保存当前工作区…", self.menu)
         self.previous_workspace_action = QAction("上一个工作区", self.menu)
         self.next_workspace_action = QAction("下一个工作区", self.menu)
@@ -43,10 +44,22 @@ class TrayController:
         self.shell_action.setCheckable(True)
         self.quit_action = QAction("退出 FolderBox", self.menu)
 
+        for mode, label in (
+            ("grid", "均衡网格"),
+            ("columns", "横向分栏"),
+            ("rows", "纵向分栏"),
+            ("cascade", "瀑布层叠"),
+        ):
+            action = self.arrange_menu.addAction(label)
+            action.triggered.connect(
+                lambda checked=False, value=mode: self.arrange_boxes(value)
+            )
+
         self.menu.insertAction(self.workspace_menu.menuAction(), self.toggle_action)
         self.menu.insertAction(self.workspace_menu.menuAction(), self.new_box_action)
         self.menu.insertSeparator(self.workspace_menu.menuAction())
         self.menu.addSeparator()
+        self.menu.addMenu(self.arrange_menu)
         self.menu.addAction(self.snap_action)
         self.menu.addAction(self.startup_action)
         self.menu.addAction(self.shell_action)
@@ -112,6 +125,9 @@ class TrayController:
             action.setCheckable(True)
             action.setChecked(name == active)
             action.triggered.connect(lambda checked=False, value=name: self.load_workspace(value))
+
+    def arrange_boxes(self, mode: str) -> None:
+        self.manager.arrange_visible(mode)
 
     def cycle_workspace(self, step: int) -> None:
         if not self.manager.cycle_workspace(step):
