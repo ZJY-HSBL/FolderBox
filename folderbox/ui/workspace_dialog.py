@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from folderbox.ui.checkpoint_dialog import WorkspaceCheckpointDialog
 from folderbox.workspace_io import suggested_workspace_filename
 
 if TYPE_CHECKING:
@@ -95,9 +96,11 @@ class WorkspaceDialog(QDialog):
 
         portability_row = QHBoxLayout()
         self.duplicate_button = QPushButton("复制")
+        self.checkpoint_button = QPushButton("恢复点…")
         self.export_button = QPushButton("导出…")
         self.import_button = QPushButton("导入…")
         portability_row.addWidget(self.duplicate_button)
+        portability_row.addWidget(self.checkpoint_button)
         portability_row.addWidget(self.export_button)
         portability_row.addWidget(self.import_button)
         portability_row.addStretch(1)
@@ -120,6 +123,7 @@ class WorkspaceDialog(QDialog):
         self.update_button.clicked.connect(self.update_active)
         self.save_as_button.clicked.connect(self.save_as)
         self.duplicate_button.clicked.connect(self.duplicate_selected)
+        self.checkpoint_button.clicked.connect(self.manage_checkpoints)
         self.export_button.clicked.connect(self.export_selected)
         self.import_button.clicked.connect(self.import_workspace_file)
         self.rename_button.clicked.connect(self.rename_selected)
@@ -164,6 +168,7 @@ class WorkspaceDialog(QDialog):
         self.rename_button.setEnabled(has_selection)
         self.delete_button.setEnabled(has_selection)
         self.duplicate_button.setEnabled(has_selection)
+        self.checkpoint_button.setEnabled(has_selection)
         self.export_button.setEnabled(has_selection)
         self.layout_policy_combo.setEnabled(has_selection)
         self.save_policy_button.setEnabled(has_selection)
@@ -240,6 +245,14 @@ class WorkspaceDialog(QDialog):
         except ValueError as exc:
             QMessageBox.warning(self, "保存失败", str(exc))
             return
+        self.refresh()
+
+    def manage_checkpoints(self) -> None:
+        name = self.selected_name()
+        if not name:
+            return
+        dialog = WorkspaceCheckpointDialog(self.manager, name, self)
+        dialog.exec()
         self.refresh()
 
     def duplicate_selected(self) -> None:

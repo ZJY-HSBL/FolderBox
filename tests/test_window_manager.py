@@ -328,3 +328,89 @@ def test_available_workspace_name_increments_suffix(tmp_path) -> None:
 
     assert manager.available_workspace_name("Research") == "Research (3)"
     assert manager.available_workspace_name("Study") == "Study"
+
+
+
+def test_create_workspace_checkpoint_captures_active_live_state(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research", "x": 10})]
+    manager.save_workspace("Research")
+    manager.windows = [FakeWindow({"folder": "D:/Research", "x": 88})]
+    manager.set_workspace_layout_mode("Research", "grid")
+
+    checkpoint_id = manager.create_workspace_checkpoint("Research", "Stable")
+
+    checkpoints = manager.workspace_checkpoints("Research")
+    assert checkpoints[0]["id"] == checkpoint_id
+    assert checkpoints[0]["label"] == "Stable"
+    assert checkpoints[0]["windows"][0]["x"] == 88
+    assert checkpoints[0]["layout_mode"] == "grid"
+
+
+def test_restore_workspace_checkpoint_replaces_saved_state_and_layout(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "", "x": 12})]
+    manager.save_workspace("Research")
+    manager.set_workspace_layout_mode("Research", "columns")
+    checkpoint_id = manager.create_workspace_checkpoint("Research", "Stable")
+
+    config.set("workspaces", {"Research": [{"folder": "", "x": 999}]})
+    config.set("workspace_layouts", {"Research": "rows"})
+    loaded: list[str] = []
+    manager.load_workspace = lambda name: loaded.append(name) or True
+
+    assert manager.restore_workspace_checkpoint("Research", checkpoint_id)
+    assert config.get("workspaces")["Research"][0]["x"] == 12
+    assert config.get("workspace_layouts")["Research"] == "columns"
+    assert loaded == ["Research"]
+
+
+def test_workspace_rename_moves_checkpoints(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.create_workspace_checkpoint("Research", "Stable")
+
+    assert manager.rename_workspace("Research", "Papers")
+    assert manager.workspace_checkpoints("Research") == []
+    assert manager.workspace_checkpoints("Papers")[0]["label"] == "Stable"
+
+
+def test_workspace_delete_removes_checkpoints(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.create_workspace_checkpoint("Research", "Stable")
+
+    assert manager.delete_workspace("Research")
+    assert config.get("workspace_checkpoints") == {}
+
+
+def test_delete_workspace_checkpoint_removes_only_target(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    first = manager.create_workspace_checkpoint("Research", "One")
+    second = manager.create_workspace_checkpoint("Research", "Two")
+
+    assert manager.delete_workspace_checkpoint("Research", first)
+    checkpoints = manager.workspace_checkpoints("Research")
+    assert [item["id"] for item in checkpoints] == [second]
+
+
+
+def test_duplicate_workspace_does_not_copy_checkpoints(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": str(tmp_path)})]
+    manager.save_workspace("Research")
+    manager.create_workspace_checkpoint("Research", "Stable")
+
+    assert manager.duplicate_workspace("Research", "Research Copy")
+    assert manager.workspace_checkpoints("Research")
+    assert manager.workspace_checkpoints("Research Copy") == []

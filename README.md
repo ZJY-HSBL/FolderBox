@@ -65,6 +65,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Assign `Ctrl+Alt+1` through `Ctrl+Alt+9` global shortcuts to saved Workspaces for instant switching from any application.
 - Open a searchable Workspace Quick Switcher with `Ctrl+Alt+Space`, then use the keyboard to filter and activate a Workspace.
 - Duplicate saved Workspaces and export/import them as portable `.folderbox-workspace.json` files for backup or transfer.
+- Create local Workspace checkpoints and roll back to a stable Box layout without changing that Workspace's global shortcut.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
@@ -164,6 +165,7 @@ D:/Work/Paper
 - 可为已保存 Workspace 分配 `Ctrl+Alt+1` 到 `Ctrl+Alt+9` 的 Windows 全局快捷键，从其他应用中也能直接切换。
 - 可使用 `Ctrl+Alt+Space` 打开可搜索的 Workspace Quick Switcher，并通过键盘过滤和切换 Workspace。
 - 支持复制 Workspace，并可导出/导入 `.folderbox-workspace.json` 文件，用于备份或迁移整套 Box 布局。
+- 支持为 Workspace 创建本机恢复点，可回滚 Box 状态和自动布局策略，同时保留该 Workspace 的全局快捷键绑定。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
@@ -219,3 +221,12 @@ When importing on another machine, folder paths that do not exist locally are cl
 Workspace 导出文件会保存 Box 状态及自动布局策略，并使用带版本号的 JSON 格式。全局快捷键绑定不会被导出，因此导入或复制 Workspace 时不会静默抢占已有的 `Ctrl+Alt+1…9` 槽位。
 
 如果在另一台电脑上导入，当前机器不存在的文件夹路径会被清空；Box 本身的窗口布局、外观等状态仍会保留，之后可手动重新绑定目录。
+
+
+### Workspace Checkpoints
+
+Workspace checkpoints are local restore points for Box state. They capture the Workspace's Boxes and automatic layout policy, but they do not copy or alter global hotkey assignments. Checkpoints are not included in portable Workspace export files.
+
+### Workspace 恢复点
+
+Workspace 恢复点用于保存本机 Box 状态。恢复点会记录 Workspace 中的 Box 状态和自动布局策略，但不会复制或修改全局快捷键，也不会写入可移植 Workspace 导出文件。

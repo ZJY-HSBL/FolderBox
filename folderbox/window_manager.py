@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication
@@ -314,6 +316,137 @@ class WindowManager:
         name = self.workspace_hotkey_bindings().get(slot, "")
         return self.load_workspace(name) if name else False
 
+    def workspace_checkpoints(self, name: str) -> list[dict[str, Any]]:
+        clean_name = name.strip()
+        checkpoints = self.config.get("workspace_checkpoints", {})
+        if not clean_name or not isinstance(checkpoints, dict):
+            return []
+
+        raw_items = checkpoints.get(clean_name, [])
+        if not isinstance(raw_items, list):
+            return []
+
+        result: list[dict[str, Any]] = []
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            checkpoint_id = str(item.get("id", "") or "").strip()
+            label = str(item.get("label", "") or "").strip()
+            created_at = str(item.get("created_at", "") or "").strip()
+            windows = item.get("windows", [])
+            layout_mode = str(item.get("layout_mode", "") or "")
+            if (
+                not checkpoint_id
+                or not label
+                or not isinstance(windows, list)
+                or any(not isinstance(state, dict) for state in windows)
+                or layout_mode not in WORKSPACE_LAYOUT_MODES
+            ):
+                continue
+            result.append(
+                {
+                    "id": checkpoint_id,
+                    "label": label,
+                    "created_at": created_at,
+                    "windows": deepcopy(windows),
+                    "layout_mode": layout_mode,
+                }
+            )
+        return result
+
+    def create_workspace_checkpoint(self, name: str, label: str) -> str:
+        clean_name = name.strip()
+        clean_label = label.strip()
+        if clean_name not in self.workspace_names():
+            raise ValueError("Workspace does not exist.")
+        if not clean_label:
+            raise ValueError("Checkpoint label cannot be empty.")
+
+        if self.active_workspace() == clean_name:
+            states = self.snapshot_windows()
+        else:
+            workspaces = self.config.get("workspaces", {})
+            raw_states = workspaces.get(clean_name, []) if isinstance(workspaces, dict) else []
+            states = [deepcopy(state) for state in raw_states if isinstance(state, dict)]
+
+        if not states:
+            raise ValueError("Workspace must contain at least one Box.")
+
+        checkpoint_id = uuid4().hex
+        item = {
+            "id": checkpoint_id,
+            "label": clean_label,
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "windows": deepcopy(states),
+            "layout_mode": self.workspace_layout_mode(clean_name),
+        }
+        checkpoints = dict(self.config.get("workspace_checkpoints", {}) or {})
+        items = list(checkpoints.get(clean_name, []) or [])
+        items.append(item)
+        checkpoints[clean_name] = items
+        self.config.set("workspace_checkpoints", checkpoints)
+        self.config.save()
+        return checkpoint_id
+
+    def restore_workspace_checkpoint(self, name: str, checkpoint_id: str) -> bool:
+        clean_name = name.strip()
+        clean_id = checkpoint_id.strip()
+        if clean_name not in self.workspace_names() or not clean_id:
+            return False
+
+        checkpoint = next(
+            (
+                item
+                for item in self.workspace_checkpoints(clean_name)
+                if item["id"] == clean_id
+            ),
+            None,
+        )
+        if checkpoint is None:
+            return False
+
+        states = self._normalize_window_states(checkpoint["windows"])
+        if not states:
+            return False
+
+        workspaces = dict(self.config.get("workspaces", {}) or {})
+        workspaces[clean_name] = deepcopy(states)
+        self.config.set("workspaces", workspaces)
+
+        layouts = dict(self.config.get("workspace_layouts", {}) or {})
+        layout_mode = str(checkpoint.get("layout_mode", "") or "")
+        if layout_mode:
+            layouts[clean_name] = layout_mode
+        else:
+            layouts.pop(clean_name, None)
+        self.config.set("workspace_layouts", layouts)
+        self.config.save()
+        return self.load_workspace(clean_name)
+
+    def delete_workspace_checkpoint(self, name: str, checkpoint_id: str) -> bool:
+        clean_name = name.strip()
+        clean_id = checkpoint_id.strip()
+        checkpoints = dict(self.config.get("workspace_checkpoints", {}) or {})
+        items = checkpoints.get(clean_name, [])
+        if not clean_name or not clean_id or not isinstance(items, list):
+            return False
+
+        kept = [
+            item
+            for item in items
+            if not isinstance(item, dict) or str(item.get("id", "") or "") != clean_id
+        ]
+        if len(kept) == len(items):
+            return False
+
+        if kept:
+            checkpoints[clean_name] = kept
+        else:
+            checkpoints.pop(clean_name, None)
+        self.config.set("workspace_checkpoints", checkpoints)
+        self.config.save()
+        return True
+
     def workspace_layout_mode(self, name: str) -> str:
         clean_name = name.strip()
         layouts = self.config.get("workspace_layouts", {})
@@ -496,6 +629,11 @@ class WindowManager:
             hotkeys[new_clean] = hotkeys.pop(old_clean)
             self.config.set("workspace_hotkeys", hotkeys)
 
+        checkpoints = dict(self.config.get("workspace_checkpoints", {}) or {})
+        if old_clean in checkpoints:
+            checkpoints[new_clean] = checkpoints.pop(old_clean)
+            self.config.set("workspace_checkpoints", checkpoints)
+
         if self.active_workspace() == old_clean:
             self.config.set("active_workspace", new_clean)
         self.config.save()
@@ -527,6 +665,11 @@ class WindowManager:
         if clean_name in hotkeys:
             del hotkeys[clean_name]
             self.config.set("workspace_hotkeys", hotkeys)
+
+        checkpoints = dict(self.config.get("workspace_checkpoints", {}) or {})
+        if clean_name in checkpoints:
+            del checkpoints[clean_name]
+            self.config.set("workspace_checkpoints", checkpoints)
 
         if self.active_workspace() == clean_name:
             self.config.set("active_workspace", "")
