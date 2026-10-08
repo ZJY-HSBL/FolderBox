@@ -2,6 +2,21 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.8.0] - Unreleased
+
+### Added
+
+- Added a searchable Workspace Quick Switcher.
+- Added the Windows global shortcut `Ctrl+Alt+Space` to open the Quick Switcher from any application.
+- Added Workspace metadata inside the switcher, including Box count, automatic layout policy, and assigned numeric shortcut.
+- Added keyboard-only switching with search, Up/Down selection, Enter activation, and Escape close.
+- Added a tray entry for opening the Workspace Quick Switcher.
+
+### Changed
+
+- Workspace switching now has a dedicated lightweight interaction surface separate from the full Workspace manager.
+- The global hotkey controller now tracks Quick Switcher registration independently from dynamic Workspace numeric hotkeys.
+
 ## [1.7.0] - 2026-10-08
 
 ### Added
