@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QCursor, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -60,6 +60,7 @@ class WorkspaceSwitcher(QDialog):
         self.hint_label.setObjectName("switcherHint")
         layout.addWidget(self.hint_label)
 
+        self.search_edit.installEventFilter(self)
         self.search_edit.textChanged.connect(self._apply_filter)
         self.search_edit.returnPressed.connect(self.activate_selected)
         self.list_widget.itemDoubleClicked.connect(lambda _: self.activate_selected())
@@ -136,6 +137,20 @@ class WorkspaceSwitcher(QDialog):
         geometry = self.frameGeometry()
         geometry.moveCenter(available.center())
         self.move(geometry.topLeft())
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.search_edit and event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key == Qt.Key.Key_Escape:
+                self.reject()
+                return True
+            if key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.activate_selected()
+                return True
+            if key in (Qt.Key.Key_Down, Qt.Key.Key_Up):
+                self._move_selection(1 if key == Qt.Key.Key_Down else -1)
+                return True
+        return super().eventFilter(watched, event)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape:
