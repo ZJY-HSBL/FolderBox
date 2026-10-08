@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -11,9 +12,15 @@ from folderbox.config_manager import ConfigManager, DEFAULT_WINDOW_STATE
 from folderbox.desktop_layout import layout_rectangles, placement_position, snapped_position
 from folderbox.main_window import MainWindow
 from folderbox.utils import path_exists
+from folderbox.workspace_io import (
+    WORKSPACE_LAYOUT_MODES,
+    WorkspaceFileError,
+    build_workspace_payload,
+    read_workspace_file,
+    write_workspace_file,
+)
 
 
-WORKSPACE_LAYOUT_MODES = {"grid", "columns", "rows", "cascade"}
 WORKSPACE_HOTKEY_SLOTS = set(range(1, 10))
 
 
@@ -331,6 +338,80 @@ class WindowManager:
             layouts.pop(clean_name, None)
         self.config.set("workspace_layouts", layouts)
         self.config.save()
+        return True
+
+    def available_workspace_name(self, base_name: str) -> str:
+        clean_name = base_name.strip() or "Imported Workspace"
+        names = set(self.workspace_names())
+        if clean_name not in names:
+            return clean_name
+
+        suffix = 2
+        while f"{clean_name} ({suffix})" in names:
+            suffix += 1
+        return f"{clean_name} ({suffix})"
+
+    def export_workspace(self, name: str, path: str | Path) -> None:
+        clean_name = name.strip()
+        workspaces = self.config.get("workspaces", {})
+        if not clean_name or not isinstance(workspaces, dict):
+            raise WorkspaceFileError("Workspace does not exist.")
+
+        raw_states = workspaces.get(clean_name, [])
+        if not isinstance(raw_states, list):
+            raise WorkspaceFileError("Workspace state is invalid.")
+        states = [dict(state) for state in raw_states if isinstance(state, dict)]
+        payload = build_workspace_payload(
+            clean_name,
+            states,
+            self.workspace_layout_mode(clean_name),
+        )
+        write_workspace_file(path, payload)
+
+    def import_workspace(self, path: str | Path) -> str:
+        payload = read_workspace_file(path)
+        name = self.available_workspace_name(str(payload["name"]))
+        states = self._normalize_window_states(payload["windows"])
+        if not states:
+            raise WorkspaceFileError("Workspace file contains no usable Box states.")
+
+        workspaces = dict(self.config.get("workspaces", {}) or {})
+        workspaces[name] = states
+        self.config.set("workspaces", workspaces)
+
+        layout_mode = str(payload.get("layout_mode", "") or "")
+        if layout_mode:
+            layouts = dict(self.config.get("workspace_layouts", {}) or {})
+            layouts[name] = layout_mode
+            self.config.set("workspace_layouts", layouts)
+
+        self.config.save()
+        self._notify_workspace_change()
+        return name
+
+    def duplicate_workspace(self, source_name: str, new_name: str) -> bool:
+        source = source_name.strip()
+        target = new_name.strip()
+        workspaces = dict(self.config.get("workspaces", {}) or {})
+        if (
+            not source
+            or not target
+            or source not in workspaces
+            or target in workspaces
+        ):
+            return False
+
+        workspaces[target] = deepcopy(workspaces[source])
+        self.config.set("workspaces", workspaces)
+
+        layout_mode = self.workspace_layout_mode(source)
+        if layout_mode:
+            layouts = dict(self.config.get("workspace_layouts", {}) or {})
+            layouts[target] = layout_mode
+            self.config.set("workspace_layouts", layouts)
+
+        self.config.save()
+        self._notify_workspace_change()
         return True
 
     def cycle_workspace(self, step: int) -> bool:

@@ -64,6 +64,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Assign an optional automatic layout policy to each Workspace so switching can reflow Boxes into grid, column, row, or cascade arrangements.
 - Assign `Ctrl+Alt+1` through `Ctrl+Alt+9` global shortcuts to saved Workspaces for instant switching from any application.
 - Open a searchable Workspace Quick Switcher with `Ctrl+Alt+Space`, then use the keyboard to filter and activate a Workspace.
+- Duplicate saved Workspaces and export/import them as portable `.folderbox-workspace.json` files for backup or transfer.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
@@ -162,6 +163,7 @@ D:/Work/Paper
 - 可为每个 Workspace 设置独立自动布局策略，切换时自动按网格、横向分栏、纵向分栏或瀑布模式重新整理 Box。
 - 可为已保存 Workspace 分配 `Ctrl+Alt+1` 到 `Ctrl+Alt+9` 的 Windows 全局快捷键，从其他应用中也能直接切换。
 - 可使用 `Ctrl+Alt+Space` 打开可搜索的 Workspace Quick Switcher，并通过键盘过滤和切换 Workspace。
+- 支持复制 Workspace，并可导出/导入 `.folderbox-workspace.json` 文件，用于备份或迁移整套 Box 布局。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
@@ -204,3 +206,16 @@ FolderBox 的设计目标是轻量、安静、稳定，适合长期停留在桌�
 > Workspace global hotkeys use Win32 `RegisterHotKey`. If a selected shortcut is already reserved by Windows or another application, that slot cannot become active until the conflict is removed.
 
 > Workspace 全局快捷键使用 Win32 `RegisterHotKey`。如果所选组合键已被 Windows 或其他程序占用，该槽位需要在冲突解除后才能正常注册。
+
+
+### Workspace Portability
+
+A Workspace export stores Box state and its automatic layout policy in a versioned JSON file. Global hotkey assignments are deliberately not exported, so importing or duplicating a Workspace cannot silently steal an existing `Ctrl+Alt+1…9` slot.
+
+When importing on another machine, folder paths that do not exist locally are cleared. The Box itself, its geometry, appearance, and other saved state remain available so a new folder can be bound manually.
+
+### Workspace 可移植性
+
+Workspace 导出文件会保存 Box 状态及自动布局策略，并使用带版本号的 JSON 格式。全局快捷键绑定不会被导出，因此导入或复制 Workspace 时不会静默抢占已有的 `Ctrl+Alt+1…9` 槽位。
+
+如果在另一台电脑上导入，当前机器不存在的文件夹路径会被清空；Box 本身的窗口布局、外观等状态仍会保留，之后可手动重新绑定目录。

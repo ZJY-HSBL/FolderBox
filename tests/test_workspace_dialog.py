@@ -32,6 +32,9 @@ def test_workspace_dialog_lists_saved_layouts(tmp_path) -> None:
     assert "2 个 Box" in dialog.list_widget.item(0).text()
     assert "当前" in dialog.list_widget.item(0).text()
     assert dialog.update_button.isEnabled()
+    assert dialog.duplicate_button.isEnabled()
+    assert dialog.export_button.isEnabled()
+    assert dialog.import_button.isEnabled()
 
     dialog.close()
     app.processEvents()
