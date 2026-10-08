@@ -34,6 +34,7 @@ def test_saved_config_is_valid_json(tmp_path) -> None:
         "workspaces": {},
         "workspace_layouts": {},
         "workspace_hotkeys": {},
+        "workspace_checkpoints": {},
         "active_workspace": "",
         "snap_enabled": True,
     }
@@ -83,3 +84,26 @@ def test_workspace_hotkey_round_trip(tmp_path) -> None:
     reloaded = ConfigManager(config_path)
 
     assert reloaded.get("workspace_hotkeys") == {"Research": 1}
+
+
+
+def test_workspace_checkpoints_round_trip(tmp_path) -> None:
+    config_path = tmp_path / "config.json"
+    manager = ConfigManager(config_path)
+    checkpoints = {
+        "Research": [
+            {
+                "id": "checkpoint-1",
+                "label": "Stable",
+                "created_at": "2026-10-08T07:00:00+00:00",
+                "windows": [{"folder": "D:/Research"}],
+                "layout_mode": "grid",
+            }
+        ]
+    }
+    manager.set("workspace_checkpoints", checkpoints)
+    manager.save()
+
+    reloaded = ConfigManager(config_path)
+
+    assert reloaded.get("workspace_checkpoints") == checkpoints
