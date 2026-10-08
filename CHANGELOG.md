@@ -2,6 +2,21 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.10.0] - Unreleased
+
+### Added
+
+- Added per-Workspace local checkpoints for capturing stable desktop states.
+- Added a dedicated checkpoint manager for creating, restoring, and deleting restore points.
+- Added checkpoint timestamps, labels, Box counts, and saved automatic-layout metadata.
+- Added checkpoint persistence and lifecycle handling across Workspace rename and delete operations.
+
+### Changed
+
+- Restoring a checkpoint replaces the Workspace Box state and its automatic layout policy, then reloads that Workspace immediately.
+- Active Workspace checkpoints capture the current live Box state instead of relying on the last persisted copy.
+- Checkpoints remain local to the current FolderBox installation and are intentionally excluded from Workspace export files and global hotkey metadata.
+
 ## [1.9.0] - 2026-10-08
 
 ### Added
