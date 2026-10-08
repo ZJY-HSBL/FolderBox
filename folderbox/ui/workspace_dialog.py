@@ -6,6 +6,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QInputDialog,
     QLabel,
@@ -15,6 +16,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
+
+from folderbox.workspace_io import suggested_workspace_filename
 
 if TYPE_CHECKING:
     from folderbox.window_manager import WindowManager
@@ -90,6 +93,16 @@ class WorkspaceDialog(QDialog):
         primary_row.addWidget(self.save_as_button)
         layout.addLayout(primary_row)
 
+        portability_row = QHBoxLayout()
+        self.duplicate_button = QPushButton("复制")
+        self.export_button = QPushButton("导出…")
+        self.import_button = QPushButton("导入…")
+        portability_row.addWidget(self.duplicate_button)
+        portability_row.addWidget(self.export_button)
+        portability_row.addWidget(self.import_button)
+        portability_row.addStretch(1)
+        layout.addLayout(portability_row)
+
         secondary_row = QHBoxLayout()
         self.rename_button = QPushButton("重命名")
         self.delete_button = QPushButton("删除")
@@ -106,6 +119,9 @@ class WorkspaceDialog(QDialog):
         self.load_button.clicked.connect(self.load_selected)
         self.update_button.clicked.connect(self.update_active)
         self.save_as_button.clicked.connect(self.save_as)
+        self.duplicate_button.clicked.connect(self.duplicate_selected)
+        self.export_button.clicked.connect(self.export_selected)
+        self.import_button.clicked.connect(self.import_workspace_file)
         self.rename_button.clicked.connect(self.rename_selected)
         self.delete_button.clicked.connect(self.delete_selected)
         self.close_button.clicked.connect(self.accept)
@@ -147,6 +163,8 @@ class WorkspaceDialog(QDialog):
         self.load_button.setEnabled(has_selection)
         self.rename_button.setEnabled(has_selection)
         self.delete_button.setEnabled(has_selection)
+        self.duplicate_button.setEnabled(has_selection)
+        self.export_button.setEnabled(has_selection)
         self.layout_policy_combo.setEnabled(has_selection)
         self.save_policy_button.setEnabled(has_selection)
         self.hotkey_combo.setEnabled(has_selection)
@@ -223,6 +241,69 @@ class WorkspaceDialog(QDialog):
             QMessageBox.warning(self, "保存失败", str(exc))
             return
         self.refresh()
+
+    def duplicate_selected(self) -> None:
+        source = self.selected_name()
+        if not source:
+            return
+
+        default_name = self.manager.available_workspace_name(f"{source} Copy")
+        name, ok = QInputDialog.getText(
+            self,
+            "复制 Workspace",
+            "新 Workspace 名称：",
+            text=default_name,
+        )
+        target = name.strip()
+        if not ok or not target:
+            return
+        if not self.manager.duplicate_workspace(source, target):
+            QMessageBox.warning(self, "复制失败", "名称无效或已存在同名 Workspace。")
+            return
+        self.refresh()
+        self._select_workspace(target)
+
+    def export_selected(self) -> None:
+        name = self.selected_name()
+        if not name:
+            return
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出 Workspace",
+            suggested_workspace_filename(name),
+            "FolderBox Workspace (*.folderbox-workspace.json);;JSON (*.json)",
+        )
+        if not path:
+            return
+        try:
+            self.manager.export_workspace(name, path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "导出失败", str(exc))
+
+    def import_workspace_file(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "导入 Workspace",
+            "",
+            "FolderBox Workspace (*.folderbox-workspace.json *.json);;All Files (*)",
+        )
+        if not path:
+            return
+        try:
+            name = self.manager.import_workspace(path)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "导入失败", str(exc))
+            return
+        self.refresh()
+        self._select_workspace(name)
+
+    def _select_workspace(self, name: str) -> None:
+        for index in range(self.list_widget.count()):
+            item = self.list_widget.item(index)
+            if str(item.data(Qt.ItemDataRole.UserRole) or "") == name:
+                self.list_widget.setCurrentItem(item)
+                break
 
     def rename_selected(self) -> None:
         old_name = self.selected_name()
