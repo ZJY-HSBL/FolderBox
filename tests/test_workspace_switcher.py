@@ -2,6 +2,7 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 from folderbox.config_manager import ConfigManager
@@ -57,7 +58,7 @@ def test_switcher_filters_workspace_names(tmp_path) -> None:
     switcher.search_edit.setText("rese")
 
     visible = [
-        switcher.list_widget.item(i).data(0x0100)
+        switcher.list_widget.item(i).data(Qt.ItemDataRole.UserRole)
         for i in range(switcher.list_widget.count())
         if not switcher.list_widget.item(i).isHidden()
     ]
@@ -76,7 +77,7 @@ def test_switcher_activates_selected_workspace(tmp_path) -> None:
     switcher.refresh()
     for index in range(switcher.list_widget.count()):
         item = switcher.list_widget.item(index)
-        if item.data(0x0100) == "Research":
+        if item.data(Qt.ItemDataRole.UserRole) == "Research":
             switcher.list_widget.setCurrentItem(item)
             break
 
