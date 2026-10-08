@@ -24,6 +24,7 @@ from folderbox.workspace_io import (
 
 
 WORKSPACE_HOTKEY_SLOTS = set(range(1, 10))
+MAX_AUTOMATIC_CHECKPOINTS = 10
 
 
 class WindowManager:
@@ -335,6 +336,7 @@ class WindowManager:
             created_at = str(item.get("created_at", "") or "").strip()
             windows = item.get("windows", [])
             layout_mode = str(item.get("layout_mode", "") or "")
+            automatic = bool(item.get("automatic", False))
             if (
                 not checkpoint_id
                 or not label
@@ -350,11 +352,18 @@ class WindowManager:
                     "created_at": created_at,
                     "windows": deepcopy(windows),
                     "layout_mode": layout_mode,
+                    "automatic": automatic,
                 }
             )
         return result
 
-    def create_workspace_checkpoint(self, name: str, label: str) -> str:
+    def create_workspace_checkpoint(
+        self,
+        name: str,
+        label: str,
+        *,
+        automatic: bool = False,
+    ) -> str:
         clean_name = name.strip()
         clean_label = label.strip()
         if clean_name not in self.workspace_names():
@@ -379,10 +388,25 @@ class WindowManager:
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "windows": deepcopy(states),
             "layout_mode": self.workspace_layout_mode(clean_name),
+            "automatic": bool(automatic),
         }
         checkpoints = dict(self.config.get("workspace_checkpoints", {}) or {})
         items = list(checkpoints.get(clean_name, []) or [])
         items.append(item)
+        if automatic:
+            automatic_indexes = [
+                index
+                for index, checkpoint in enumerate(items)
+                if isinstance(checkpoint, dict) and bool(checkpoint.get("automatic", False))
+            ]
+            excess = len(automatic_indexes) - MAX_AUTOMATIC_CHECKPOINTS
+            if excess > 0:
+                remove_indexes = set(automatic_indexes[:excess])
+                items = [
+                    checkpoint
+                    for index, checkpoint in enumerate(items)
+                    if index not in remove_indexes
+                ]
         checkpoints[clean_name] = items
         self.config.set("workspace_checkpoints", checkpoints)
         self.config.save()
@@ -403,6 +427,18 @@ class WindowManager:
             None,
         )
         if checkpoint is None:
+            return False
+
+        safety_label = "Before restore " + datetime.now(timezone.utc).strftime(
+            "%Y-%m-%d %H:%M UTC"
+        )
+        try:
+            self.create_workspace_checkpoint(
+                clean_name,
+                safety_label,
+                automatic=True,
+            )
+        except ValueError:
             return False
 
         states = self._normalize_window_states(checkpoint["windows"])
