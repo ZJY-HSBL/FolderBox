@@ -13,6 +13,16 @@ class WorkspaceFileError(ValueError):
     pass
 
 
+def suggested_workspace_filename(name: str) -> str:
+    safe = "".join(
+        "_" if character in '<>:"/\\|?*' or ord(character) < 32 else character
+        for character in name.strip()
+    ).rstrip(". ")
+    if not safe:
+        safe = "Workspace"
+    return f"FolderBox-{safe}.folderbox-workspace.json"
+
+
 def build_workspace_payload(
     name: str,
     windows: list[dict[str, Any]],
