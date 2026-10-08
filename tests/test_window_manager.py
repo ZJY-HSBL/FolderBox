@@ -277,3 +277,54 @@ def test_workspace_hotkey_loads_bound_workspace(tmp_path) -> None:
 
     assert manager.load_workspace_by_hotkey(5)
     assert loaded == ["Research"]
+
+
+
+def test_workspace_export_and_import_preserve_layout_without_hotkey(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [
+        FakeWindow({"folder": str(tmp_path), "box_title": "Papers"})
+    ]
+    manager.save_workspace("Research")
+    manager.set_workspace_layout_mode("Research", "grid")
+    manager.set_workspace_hotkey_slot("Research", 1)
+
+    export_path = tmp_path / "Research.folderbox-workspace.json"
+    manager.export_workspace("Research", export_path)
+
+    imported_name = manager.import_workspace(export_path)
+
+    assert imported_name == "Research (2)"
+    assert manager.workspace_layout_mode(imported_name) == "grid"
+    assert manager.workspace_hotkey_slot(imported_name) == 0
+    assert manager.workspace_box_count(imported_name) == 1
+
+
+def test_duplicate_workspace_preserves_layout_without_hotkey(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": str(tmp_path)})]
+    manager.save_workspace("Research")
+    manager.set_workspace_layout_mode("Research", "columns")
+    manager.set_workspace_hotkey_slot("Research", 2)
+
+    assert manager.duplicate_workspace("Research", "Research Copy")
+    assert manager.workspace_box_count("Research Copy") == 1
+    assert manager.workspace_layout_mode("Research Copy") == "columns"
+    assert manager.workspace_hotkey_slot("Research Copy") == 0
+
+
+def test_available_workspace_name_increments_suffix(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    config.set(
+        "workspaces",
+        {
+            "Research": [{}],
+            "Research (2)": [{}],
+        },
+    )
+
+    assert manager.available_workspace_name("Research") == "Research (3)"
+    assert manager.available_workspace_name("Study") == "Study"
