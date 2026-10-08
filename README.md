@@ -63,6 +63,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Manage Workspaces from a dedicated visual manager while keeping tray-based quick switching.
 - Assign an optional automatic layout policy to each Workspace so switching can reflow Boxes into grid, column, row, or cascade arrangements.
 - Assign `Ctrl+Alt+1` through `Ctrl+Alt+9` global shortcuts to saved Workspaces for instant switching from any application.
+- Open a searchable Workspace Quick Switcher with `Ctrl+Alt+Space`, then use the keyboard to filter and activate a Workspace.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
@@ -78,6 +79,8 @@ can be displayed as a compact desktop window where its contents can be viewed an
 | `Ctrl+Shift+N` | Create folder |
 | `Ctrl+F` | Focus current-folder filter |
 | `Ctrl+Alt+B` | Globally hide / show all Boxes on Windows |
+| `Ctrl+Alt+Space` | Open the Workspace Quick Switcher |
+| `Ctrl+Alt+1…9` | Switch to an assigned Workspace |
 | `Ctrl + mouse wheel` | Change icon size in icon view |
 | `Alt+Left` / `Alt+Right` | Back / forward |
 | `Backspace` | Up one folder |
@@ -158,6 +161,7 @@ D:/Work/Paper
 - 提供独立 Workspace 管理窗口，同时保留托盘快速切换。
 - 可为每个 Workspace 设置独立自动布局策略，切换时自动按网格、横向分栏、纵向分栏或瀑布模式重新整理 Box。
 - 可为已保存 Workspace 分配 `Ctrl+Alt+1` 到 `Ctrl+Alt+9` 的 Windows 全局快捷键，从其他应用中也能直接切换。
+- 可使用 `Ctrl+Alt+Space` 打开可搜索的 Workspace Quick Switcher，并通过键盘过滤和切换 Workspace。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
@@ -173,6 +177,8 @@ D:/Work/Paper
 | `Ctrl+Shift+N` | 新建文件夹 |
 | `Ctrl+F` | 聚焦当前目录过滤框 |
 | `Ctrl+Alt+B` | Windows 下全局隐藏 / 显示全部 Box |
+| `Ctrl+Alt+Space` | 打开 Workspace Quick Switcher |
+| `Ctrl+Alt+1…9` | 切换到已绑定的 Workspace |
 | `Ctrl + 鼠标滚轮` | 调整图标视图的图标大小 |
 | `Alt+Left` / `Alt+Right` | 后退 / 前进 |
 | `Backspace` | 返回上一级 |
