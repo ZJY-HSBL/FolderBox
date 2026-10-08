@@ -2,6 +2,22 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.9.0] - Unreleased
+
+### Added
+
+- Added portable Workspace export files using the versioned `folderbox-workspace` JSON format.
+- Added Workspace import with automatic duplicate-name resolution such as `Research (2)`.
+- Added Workspace duplication from the visual manager.
+- Added safe Windows export filename generation for arbitrary Workspace names.
+- Added import, export, and duplicate controls to the Workspace manager.
+
+### Changed
+
+- Exported Workspaces preserve Box state and automatic layout policy but intentionally exclude global hotkey bindings.
+- Imported Workspace Box states are normalized against the current machine; missing folder paths become unbound Boxes while the remaining visual state is retained.
+- Duplicated Workspaces inherit layout behavior but receive no global shortcut assignment.
+
 ## [1.8.0] - 2026-10-08
 
 ### Added
