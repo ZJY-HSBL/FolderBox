@@ -35,3 +35,24 @@ def test_checkpoint_dialog_lists_saved_restore_points(tmp_path) -> None:
 
     dialog.close()
     app.processEvents()
+
+
+
+def test_checkpoint_dialog_marks_automatic_safety_points(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(app, config)
+    manager.windows = [FakeWindow({"folder": "D:/Research"})]
+    manager.save_workspace("Research")
+    manager.create_workspace_checkpoint(
+        "Research",
+        "Before restore",
+        automatic=True,
+    )
+
+    dialog = WorkspaceCheckpointDialog(manager, "Research")
+
+    assert "自动安全" in dialog.list_widget.item(0).text()
+
+    dialog.close()
+    app.processEvents()

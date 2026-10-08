@@ -414,3 +414,50 @@ def test_duplicate_workspace_does_not_copy_checkpoints(tmp_path) -> None:
     assert manager.duplicate_workspace("Research", "Research Copy")
     assert manager.workspace_checkpoints("Research")
     assert manager.workspace_checkpoints("Research Copy") == []
+
+
+
+def test_restore_creates_automatic_safety_checkpoint_with_current_state(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "", "x": 12})]
+    manager.save_workspace("Research")
+    checkpoint_id = manager.create_workspace_checkpoint("Research", "Stable")
+
+    manager.windows = [FakeWindow({"folder": "", "x": 777})]
+    manager.load_workspace = lambda name: True
+
+    assert manager.restore_workspace_checkpoint("Research", checkpoint_id)
+
+    automatic = [
+        item
+        for item in manager.workspace_checkpoints("Research")
+        if item["automatic"]
+    ]
+    assert len(automatic) == 1
+    assert automatic[0]["windows"][0]["x"] == 777
+    assert automatic[0]["label"].startswith("Before restore ")
+
+
+def test_automatic_checkpoint_retention_preserves_manual_points(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": "", "x": 1})]
+    manager.save_workspace("Research")
+    manual_id = manager.create_workspace_checkpoint("Research", "Manual")
+
+    for index in range(12):
+        manager.windows = [FakeWindow({"folder": "", "x": index})]
+        manager.create_workspace_checkpoint(
+            "Research",
+            f"Auto {index}",
+            automatic=True,
+        )
+
+    checkpoints = manager.workspace_checkpoints("Research")
+    automatic = [item for item in checkpoints if item["automatic"]]
+    manual = [item for item in checkpoints if not item["automatic"]]
+
+    assert len(automatic) == 10
+    assert [item["label"] for item in automatic] == [f"Auto {i}" for i in range(2, 12)]
+    assert [item["id"] for item in manual] == [manual_id]

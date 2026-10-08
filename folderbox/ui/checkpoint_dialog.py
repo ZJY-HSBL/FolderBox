@@ -68,7 +68,10 @@ class WorkspaceCheckpointDialog(QDialog):
             created_at = str(checkpoint.get("created_at", "") or "")
             count = len(checkpoint.get("windows", []))
             layout_mode = str(checkpoint.get("layout_mode", "") or "")
+            automatic = bool(checkpoint.get("automatic", False))
             suffix = f" · {count} 个 Box"
+            if automatic:
+                suffix += " · 自动安全"
             if layout_mode:
                 suffix += f" · {layout_mode}"
             if created_at:
