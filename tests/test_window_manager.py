@@ -401,3 +401,16 @@ def test_delete_workspace_checkpoint_removes_only_target(tmp_path) -> None:
     assert manager.delete_workspace_checkpoint("Research", first)
     checkpoints = manager.workspace_checkpoints("Research")
     assert [item["id"] for item in checkpoints] == [second]
+
+
+
+def test_duplicate_workspace_does_not_copy_checkpoints(tmp_path) -> None:
+    config = ConfigManager(tmp_path / "config.json")
+    manager = WindowManager(FakeApp(), config)
+    manager.windows = [FakeWindow({"folder": str(tmp_path)})]
+    manager.save_workspace("Research")
+    manager.create_workspace_checkpoint("Research", "Stable")
+
+    assert manager.duplicate_workspace("Research", "Research Copy")
+    assert manager.workspace_checkpoints("Research")
+    assert manager.workspace_checkpoints("Research Copy") == []
