@@ -2,6 +2,20 @@
 
 All notable changes to FolderBox are documented here.
 
+## [1.11.0] - Unreleased
+
+### Added
+
+- Added automatic safety checkpoints immediately before restoring an older Workspace checkpoint.
+- Added a bounded retention policy that keeps the latest 10 automatic safety checkpoints per Workspace.
+- Added explicit UI labels for automatic safety checkpoints.
+
+### Changed
+
+- Checkpoint restore now aborts if FolderBox cannot create a safety backup of the current Workspace state first.
+- Automatic checkpoint retention never removes manually created restore points.
+- Existing v1.10 checkpoints without an `automatic` field remain valid and are treated as manual checkpoints.
+
 ## [1.10.0] - 2026-10-08
 
 ### Added
