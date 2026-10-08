@@ -66,6 +66,7 @@ can be displayed as a compact desktop window where its contents can be viewed an
 - Open a searchable Workspace Quick Switcher with `Ctrl+Alt+Space`, then use the keyboard to filter and activate a Workspace.
 - Duplicate saved Workspaces and export/import them as portable `.folderbox-workspace.json` files for backup or transfer.
 - Create local Workspace checkpoints and roll back to a stable Box layout without changing that Workspace's global shortcut.
+- Automatically create a safety checkpoint before every checkpoint restore, keeping the latest 10 automatic safety points without pruning manual checkpoints.
 - Snap Boxes automatically to screen edges and neighboring Boxes, with optional manual edge/center placement.
 - Arrange multiple visible Boxes with grid, horizontal-column, vertical-row, or cascade templates.
 - Apply layout templates independently per monitor while leaving locked Boxes untouched.
@@ -166,6 +167,7 @@ D:/Work/Paper
 - 可使用 `Ctrl+Alt+Space` 打开可搜索的 Workspace Quick Switcher，并通过键盘过滤和切换 Workspace。
 - 支持复制 Workspace，并可导出/导入 `.folderbox-workspace.json` 文件，用于备份或迁移整套 Box 布局。
 - 支持为 Workspace 创建本机恢复点，可回滚 Box 状态和自动布局策略，同时保留该 Workspace 的全局快捷键绑定。
+- 每次恢复旧恢复点之前会自动创建安全恢复点，并只保留最近 10 个自动安全点；手动恢复点不会被自动清理。
 - Box 可自动吸附到屏幕边缘或相邻 Box，并支持一键贴左、贴右、贴上、贴下和居中。
 - 支持将多个可见 Box 一键整理为均衡网格、横向分栏、纵向分栏或瀑布层叠。
 - 多显示器会分别整理各自屏幕上的 Box，已锁定 Box 不参与自动排列。
