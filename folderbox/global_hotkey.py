@@ -20,6 +20,8 @@ MOD_NOREPEAT = 0x4000
 
 TOGGLE_HOTKEY_ID = 0x4642
 TOGGLE_HOTKEY_VK = ord("B")
+SWITCHER_HOTKEY_ID = 0x4653
+SWITCHER_HOTKEY_VK = 0x20
 WORKSPACE_HOTKEY_BASE_ID = 0x4700
 
 
@@ -57,12 +59,19 @@ class HotkeyEventFilter(QAbstractNativeEventFilter):
 
 
 class GlobalHotkeyController:
-    def __init__(self, app: QApplication, manager: WindowManager) -> None:
+    def __init__(
+        self,
+        app: QApplication,
+        manager: WindowManager,
+        switcher_callback: Callable[[], None] | None = None,
+    ) -> None:
         self.app = app
         self.manager = manager
+        self.switcher_callback = switcher_callback
         self.callbacks: dict[int, Callable[[], None]] = {}
         self.registered_ids: set[int] = set()
         self.workspace_registered_slots: set[int] = set()
+        self.switcher_registered = False
         self.filter = HotkeyEventFilter(self.callbacks)
         self.app.installNativeEventFilter(self.filter)
         self.app.aboutToQuit.connect(self.unregister)
@@ -71,6 +80,10 @@ class GlobalHotkeyController:
     @staticmethod
     def description() -> str:
         return "Ctrl+Alt+B"
+
+    @staticmethod
+    def switcher_description() -> str:
+        return "Ctrl+Alt+Space"
 
     @staticmethod
     def workspace_description(slot: int) -> str:
@@ -86,6 +99,12 @@ class GlobalHotkeyController:
             TOGGLE_HOTKEY_VK,
             self.manager.toggle_all,
         )
+        if self.switcher_callback is not None:
+            self.switcher_registered = self._register_hotkey(
+                SWITCHER_HOTKEY_ID,
+                SWITCHER_HOTKEY_VK,
+                self.switcher_callback,
+            )
         self.refresh_workspace_hotkeys()
         return toggle_registered
 
@@ -142,3 +161,4 @@ class GlobalHotkeyController:
         for hotkey_id in tuple(self.registered_ids):
             self._unregister_hotkey(hotkey_id)
         self.workspace_registered_slots.clear()
+        self.switcher_registered = False

@@ -14,6 +14,7 @@ from folderbox.global_hotkey import GlobalHotkeyController
 from folderbox.instance_bridge import InstanceBridge, notify_existing_instance
 from folderbox.launch import requested_folder
 from folderbox.tray import TrayController
+from folderbox.ui.workspace_switcher import WorkspaceSwitcher
 from folderbox.utils import is_windows
 from folderbox.window_manager import WindowManager
 
@@ -65,21 +66,32 @@ def run_app(argv: list[str]) -> int:
     if folder:
         manager.open_folder_window(folder)
 
+    switcher = WorkspaceSwitcher(manager)
+
     hotkey: GlobalHotkeyController | None = None
     hotkey_active = False
+    switcher_hotkey_active = False
     if is_windows():
-        hotkey = GlobalHotkeyController(app, manager)
+        hotkey = GlobalHotkeyController(app, manager, switcher.show_switcher)
         hotkey_active = hotkey.register()
+        switcher_hotkey_active = hotkey.switcher_registered
 
     tray: TrayController | None = None
     if TrayController.is_available():
         app.setQuitOnLastWindowClosed(False)
-        tray = TrayController(app, manager, global_hotkey_active=hotkey_active)
+        tray = TrayController(
+            app,
+            manager,
+            global_hotkey_active=hotkey_active,
+            workspace_switcher_callback=switcher.show_switcher,
+            workspace_switcher_hotkey_active=switcher_hotkey_active,
+        )
         tray.show()
 
     exit_code = app.exec()
     del tray
     del hotkey
+    del switcher
     del bridge
     return exit_code
 

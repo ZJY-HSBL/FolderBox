@@ -1,6 +1,7 @@
 from folderbox.global_hotkey import (
     MOD_ALT,
     MOD_CONTROL,
+    SWITCHER_HOTKEY_VK,
     TOGGLE_HOTKEY_VK,
     GlobalHotkeyController,
     workspace_hotkey_id,
@@ -10,7 +11,9 @@ from folderbox.global_hotkey import (
 
 def test_global_hotkey_definition() -> None:
     assert GlobalHotkeyController.description() == "Ctrl+Alt+B"
+    assert GlobalHotkeyController.switcher_description() == "Ctrl+Alt+Space"
     assert TOGGLE_HOTKEY_VK == ord("B")
+    assert SWITCHER_HOTKEY_VK == 0x20
     assert MOD_CONTROL != 0
     assert MOD_ALT != 0
 

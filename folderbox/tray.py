@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QApplication, QInputDialog, QMenu, QMessageBox, QSystemTrayIcon
 
@@ -19,6 +21,8 @@ class TrayController:
         app: QApplication,
         manager: WindowManager,
         global_hotkey_active: bool = False,
+        workspace_switcher_callback: Callable[[], None] | None = None,
+        workspace_switcher_hotkey_active: bool = False,
     ) -> None:
         self.app = app
         self.manager = manager
@@ -32,6 +36,11 @@ class TrayController:
         self.new_box_action = QAction("新建 Box", self.menu)
         self.workspace_menu = self.menu.addMenu("工作区")
         self.arrange_menu = QMenu("一键排列", self.menu)
+        quick_switch_label = "快速切换 Workspace"
+        if workspace_switcher_hotkey_active:
+            quick_switch_label += "    Ctrl+Alt+Space"
+        self.quick_switch_action = QAction(quick_switch_label, self.menu)
+        self.quick_switch_action.setEnabled(workspace_switcher_callback is not None)
         self.save_workspace_action = QAction("保存当前工作区…", self.menu)
         self.previous_workspace_action = QAction("上一个工作区", self.menu)
         self.next_workspace_action = QAction("下一个工作区", self.menu)
@@ -67,6 +76,8 @@ class TrayController:
 
         self.toggle_action.triggered.connect(self.manager.toggle_all)
         self.new_box_action.triggered.connect(lambda: self.manager.open_new_window(None))
+        if workspace_switcher_callback is not None:
+            self.quick_switch_action.triggered.connect(workspace_switcher_callback)
         self.save_workspace_action.triggered.connect(self.save_workspace)
         self.previous_workspace_action.triggered.connect(
             lambda: self.cycle_workspace(-1)
@@ -107,6 +118,8 @@ class TrayController:
         self.shell_action.blockSignals(False)
 
         self.workspace_menu.clear()
+        self.workspace_menu.addAction(self.quick_switch_action)
+        self.workspace_menu.addSeparator()
         self.workspace_menu.addAction(self.save_workspace_action)
         self.workspace_menu.addAction(self.previous_workspace_action)
         self.workspace_menu.addAction(self.next_workspace_action)
