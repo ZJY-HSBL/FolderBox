@@ -11,6 +11,7 @@ WINDOWS_RESERVED_NAMES = {
     "NUL",
     *(f"COM{index}" for index in range(1, 10)),
     *(f"LPT{index}" for index in range(1, 10)),
+    *(f"{prefix}{digit}" for prefix in ("COM", "LPT") for digit in "¹²³"),
 }
 
 
