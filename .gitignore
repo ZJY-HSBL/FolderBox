@@ -1,14 +1,30 @@
+# Python bytecode / caches
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 
+# Packaging / build
 build/
 dist/
+*.egg-info/
 *.spec
 
+# Virtual environments / local environment
 .venv/
+venv/
 env/
+.env
+
+# Coverage / logs
+.coverage
+coverage.xml
+htmlcov/
 *.log
 
+# IDE / OS
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
